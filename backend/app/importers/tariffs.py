@@ -167,23 +167,68 @@ def parse_date(value: str) -> date:
 
 def normalize_row(row: dict[str, str]) -> NormalizedTariff:
     messages: list[str] = []
-    carrier, carrier_messages = parse_carrier(row.get("paqueteria", ""))
-    zone, zone_messages = parse_zone(row.get("zona", ""))
-    messages.extend(carrier_messages + zone_messages)
+    errors: list[str] = []
 
-    minimum, min_messages = parse_weight(row.get("peso_min", row.get("peso_min_kg", "")), row.get("unidad", "kg"), row.get("peso_max", row.get("peso_max_kg", "")))
-    maximum, max_messages = parse_weight(row.get("peso_max", row.get("peso_max_kg", "")), row.get("unidad", "kg"), row.get("peso_min", row.get("peso_min_kg", "")))
-    messages.extend(min_messages + max_messages)
-    if maximum <= minimum:
-        raise ValueError("El peso máximo debe ser mayor que el peso mínimo")
+    carrier = zone = None
+    minimum = maximum = price = None
+    days_min = days_max = valid_from = None
 
-    price, price_messages = parse_price(row.get("precio", row.get("precio_mxn", "")))
-    messages.extend(price_messages)
-    days_min, days_max = parse_delivery_days(row.get("dias_entrega", ""))
-    valid_from = parse_date(row.get("vigencia_desde", ""))
-    # Evita repetir el mismo aviso cuando la unidad inferida aplica a ambos límites.
+    try:
+        carrier, items = parse_carrier(row.get("paqueteria", ""))
+        messages.extend(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    try:
+        zone, items = parse_zone(row.get("zona", ""))
+        messages.extend(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    min_raw = row.get("peso_min", row.get("peso_min_kg", ""))
+    max_raw = row.get("peso_max", row.get("peso_max_kg", ""))
+    unit = row.get("unidad", "")
+
+    try:
+        minimum, items = parse_weight(min_raw, unit, max_raw)
+        messages.extend(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    try:
+        maximum, items = parse_weight(max_raw, unit, min_raw)
+        messages.extend(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    if minimum is not None and maximum is not None and maximum <= minimum:
+        errors.append("El peso maximo debe ser mayor que el peso minimo")
+
+    try:
+        price, items = parse_price(row.get("precio", row.get("precio_mxn", "")))
+        messages.extend(items)
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    try:
+        days_min, days_max = parse_delivery_days(row.get("dias_entrega", ""))
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    try:
+        valid_from = parse_date(row.get("vigencia_desde", ""))
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    errors = list(dict.fromkeys(errors))
+    if errors:
+        raise ValueError("; ".join(errors))
+
     messages = list(dict.fromkeys(messages))
-    return NormalizedTariff(carrier, zone, minimum, maximum, price, days_min, days_max, valid_from, messages)
+    return NormalizedTariff(
+        carrier, zone, minimum, maximum, price,
+        days_min, days_max, valid_from, messages,
+    )
 
 
 def import_carriers(session: Session, path: Path) -> int:

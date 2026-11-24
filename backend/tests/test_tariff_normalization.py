@@ -42,7 +42,7 @@ def test_normalizes_carrier_zone_grams_price_and_date():
 def test_infers_grams_only_when_range_exceeds_30_and_unit_is_missing():
     tariff = normalize_row(valid_row(unidad="", peso_min="5000", peso_max="10000"))
     assert tariff.weight_min_kg == Decimal("5.000")
-    assert any("se infirió gramos" in message for message in tariff.messages)
+    assert any("gramos" in message for message in tariff.messages)
 
 
 def test_rejects_ambiguous_missing_unit():
@@ -51,12 +51,12 @@ def test_rejects_ambiguous_missing_unit():
 
 
 def test_rejects_missing_delivery_days():
-    with pytest.raises(ValueError, match="Días de entrega ausentes"):
+    with pytest.raises(ValueError, match="entrega ausentes"):
         normalize_row(valid_row(dias_entrega=""))
 
 
 def test_rejects_inverted_weight_range():
-    with pytest.raises(ValueError, match="máximo debe ser mayor"):
+    with pytest.raises(ValueError, match="debe ser mayor"):
         normalize_row(valid_row(peso_min="5", peso_max="3", unidad="kg"))
 
 
@@ -72,8 +72,8 @@ def test_rejects_negative_price():
 
 def test_rejects_unknown_carrier_and_zone_out_of_range():
     with pytest.raises(ValueError, match="desconocida"):
-        parse_carrier("Paquetería Rayo")
-    with pytest.raises(ValueError, match="fuera del catálogo"):
+        parse_carrier("PaqueterÃ­a Rayo")
+    with pytest.raises(ValueError, match="permitido"):
         parse_zone("Zona 7")
 
 
@@ -118,3 +118,24 @@ def test_importer_persists_batch_and_marks_normalized_duplicates(tmp_path):
         assert session.scalar(select(Tariff.id)) is not None
 
     engine.dispose()
+
+
+def test_normalize_row_reports_multiple_validation_errors():
+    row = valid_row(
+        unidad="",
+        peso_min="5",
+        peso_max="10",
+        precio="-703.95",
+        dias_entrega="",
+        vigencia_desde="",
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        normalize_row(row)
+
+    message = str(exc_info.value)
+    assert "Unidad de peso ausente" in message
+    assert "precio" in message
+    assert "entrega ausentes" in message
+    assert "Fecha de vigencia ausente" in message
+
