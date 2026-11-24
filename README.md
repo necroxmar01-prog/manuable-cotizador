@@ -7,7 +7,7 @@ Aplicación fullstack para cotizar envíos, registrar leads y administrar tarifa
 - Git
 - Docker con Docker Compose
 
-No necesitas instalar Python ni Node.js en tu máquina.
+No necesitas instalar Python, Node ni PostgreSQL en tu máquina.
 
 ## Levantar todo
 
@@ -16,6 +16,8 @@ Desde la raíz del repositorio:
 ```bash
 docker compose up --build
 ```
+
+En el primer arranque, el backend espera a que PostgreSQL esté saludable, aplica las migraciones Alembic e importa `paqueterias.csv` y `tarifas.csv` si la base todavía no tiene una importación inicial.
 
 Servicios:
 
@@ -36,8 +38,24 @@ docker compose run --rm backend pytest -q
 
 ## Datos de entrada
 
-Los archivos CSV originales están en `datos/`. `tarifas_dhl_v2.csv` corresponde al archivo adicional compartido para la fase 2 y declara vigencia desde el 1 de diciembre de 2026.
+Los archivos CSV originales están en `datos/`. `tarifas_dhl_v2.csv` y `cotizaciones_historicas.csv` se reservan para la fase 2.
+
+## Importador de tarifas
+
+El importador de fase 1 procesa `paqueterias.csv` y `tarifas.csv`. Normaliza nombres, zonas, unidades, precios, días y fechas; rechaza filas incompletas o ambiguas y registra cada fila en `import_records`, vinculada a un lote en `import_batches`.
+
+La carga inicial es idempotente: si ya existe un lote de importación, el arranque no vuelve a cargar el CSV. Para reiniciar completamente los datos locales y repetir la carga inicial:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
 
 ## Estado
 
-Esqueleto inicial: servicios Docker, endpoint de salud y prueba mínima. El importador, el modelo de datos y los flujos funcionales se implementarán por etapas.
+- Base de datos PostgreSQL 16 y migración inicial Alembic.
+- Modelos para paqueterías, tarifas y auditoría de importaciones.
+- Importador conservador de tarifas con pruebas unitarias.
+- Cotizador, leads, autenticación y panel comercial pendientes.
+
+Con los CSV recibidos actualmente, la importación de `tarifas.csv` produce 33 tarifas guardadas: 1 fila aceptada sin cambios y 32 filas corregidas por normalización. Se rechazan 75 filas: 73 por datos inválidos o incompletos y 2 duplicadas después de normalizar. Cada rechazo conserva su motivo en la base de datos.

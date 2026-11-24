@@ -21,6 +21,8 @@ services:
       DATABASE_URL: postgresql+psycopg://manuable:manuable_dev@db:5432/manuable
     ports:
       - "8000:8000"
+    volumes:
+      - ./datos:/app/datos:ro
     depends_on:
       db:
         condition: service_healthy

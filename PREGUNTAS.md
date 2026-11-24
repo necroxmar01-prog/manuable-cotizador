@@ -7,3 +7,6 @@ Estas preguntas documentan ambigüedades que afectan la cotización. Mientras no
 3. ¿Los días de entrega son días hábiles o naturales?
 4. ¿El precio incluye IVA y algún cargo adicional?
 5. ¿Qué mecanismo de acceso y qué usuarios debe tener el panel de Comercial?
+6. ¿Confirman que el catálogo válido de zonas es exclusivamente 1, 2, 3 y 4? Se rechazan valores como `Zona 7`.
+7. Cuando falta la unidad de peso, ¿Comercial puede confirmar que valores de límites mayores a 30 corresponden a gramos? Mientras tanto, solo se infiere esa unidad con esa condición y se documenta.
+8. ¿Se deben rechazar tarifas sin días de entrega o se pueden mostrar con precio y plazo no disponible? Para cumplir la solicitud de mostrar precio y días, inicialmente se rechazan.
