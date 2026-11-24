@@ -1,0 +1,76 @@
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.admin-layout {
+  min-height: 100vh;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #172b4d;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+}
+
+.brand-mark {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #155eef;
+  color: #fff;
+  font-weight: 800;
+}
+
+.eyebrow {
+  color: #155eef;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 1.5px;
+}
+
+.metric-card {
+  min-height: 145px;
+  border-radius: 12px;
+}
+
+.metric-value {
+  color: #172b4d;
+  font-size: 2rem;
+  font-weight: 750;
+}
+
+.table {
+  white-space: nowrap;
+}
+
+.table th {
+  color: #475467;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.empty-icon {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eff4ff;
+  color: #155eef;
+  font-size: 1.5rem;
+}
+
+@media (max-width: 576px) {
+  main.container-fluid {
+    padding-top: 2rem !important;
+  }
+}

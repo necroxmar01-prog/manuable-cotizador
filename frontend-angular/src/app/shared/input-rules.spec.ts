@@ -1,0 +1,71 @@
+import { FormControl } from '@angular/forms';
+
+import {
+  emailFormatValidator,
+  positiveDecimalValidator,
+  postalCodeValidator,
+  sanitizeEmail,
+  sanitizePostalCode,
+  sanitizeWeight
+} from './input-rules';
+
+describe('Reglas reutilizables de entradas', () => {
+  describe('CÃ³digo postal', () => {
+    it('debe conservar Ãºnicamente cinco dÃ­gitos', () => {
+      expect(sanitizePostalCode('ABC64000123')).toBe('64000');
+    });
+
+    it('debe aceptar exactamente cinco dÃ­gitos', () => {
+      expect(postalCodeValidator(new FormControl('64000'))).toBeNull();
+    });
+
+    it('debe rechazar cÃ³digos postales incompletos', () => {
+      expect(postalCodeValidator(new FormControl('6400'))).toEqual({
+        invalidPostalCode: true
+      });
+    });
+  });
+
+  describe('Peso', () => {
+    it('debe limitar los decimales a tres', () => {
+      expect(sanitizeWeight('2.56789')).toBe('2.567');
+    });
+
+    it('debe conservar un solo punto decimal', () => {
+      expect(sanitizeWeight('2..5')).toBe('2.5');
+    });
+
+    it('no debe convertir un peso negativo en positivo', () => {
+      expect(sanitizeWeight('-5')).toBe('');
+    });
+
+    it('debe aceptar pesos positivos de hasta tres decimales', () => {
+      expect(positiveDecimalValidator(new FormControl('2.567'))).toBeNull();
+    });
+
+    it('debe rechazar cero, negativos y pesos mayores al lÃ­mite', () => {
+      expect(positiveDecimalValidator(new FormControl('0'))).not.toBeNull();
+      expect(positiveDecimalValidator(new FormControl('-5'))).not.toBeNull();
+      expect(positiveDecimalValidator(new FormControl('1000.001'))).not.toBeNull();
+    });
+  });
+
+  describe('Correo electrÃ³nico', () => {
+    it('debe eliminar acentos y diagonales', () => {
+      expect(sanitizeEmail('JosÃ©/test@gmail.com')).toBe('Jostest@gmail.com');
+    });
+
+    it('debe conservar las mayÃºsculas', () => {
+      expect(sanitizeEmail('Usuario@GMAIL.COM')).toBe('Usuario@GMAIL.COM');
+    });
+
+    it('debe aceptar un correo con formato vÃ¡lido', () => {
+      expect(emailFormatValidator(new FormControl('Usuario@gmail.com'))).toBeNull();
+    });
+
+    it('debe rechazar acentos y diagonales si llegan directamente al validador', () => {
+      expect(emailFormatValidator(new FormControl('JosÃ©@gmail.com'))).not.toBeNull();
+      expect(emailFormatValidator(new FormControl('Jose/test@gmail.com'))).not.toBeNull();
+    });
+  });
+});

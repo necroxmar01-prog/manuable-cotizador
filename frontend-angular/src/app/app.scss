@@ -1,0 +1,87 @@
+﻿:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #172b4d;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+}
+
+.brand-mark {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: #155eef;
+  color: #fff;
+  font-weight: 800;
+}
+
+.eyebrow {
+  color: #155eef;
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 1.5px;
+}
+
+h1 {
+  color: #172b4d;
+  letter-spacing: -1.8px;
+  line-height: 1.12;
+}
+
+.quote-card {
+  border-radius: 16px;
+}
+
+.form-label {
+  color: #344054;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.form-control {
+  min-height: 48px;
+  border-color: #d0d5dd;
+  border-radius: 8px;
+}
+
+.form-control:focus {
+  border-color: #155eef;
+  box-shadow: 0 0 0 3px rgb(21 94 239 / 12%);
+}
+
+.btn-primary {
+  min-height: 50px;
+  border-color: #155eef;
+  border-radius: 8px;
+  background-color: #155eef;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.btn-primary:hover {
+  border-color: #004eeb;
+  background-color: #004eeb;
+}
+
+@media (max-width: 576px) {
+  main.container {
+    padding-top: 2rem !important;
+  }
+
+  h1 {
+    font-size: 2.3rem;
+  }
+
+  .quote-card .card-body {
+    padding: 1.5rem !important;
+  }
+}

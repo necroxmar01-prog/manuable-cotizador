@@ -1,0 +1,146 @@
+<main class="container py-5">
+  <header class="d-flex justify-content-between align-items-center mb-5">
+    <a class="brand text-decoration-none" href="/">
+      <span class="brand-mark">M</span>
+      <span>manuable</span>
+    </a>
+    <span class="text-secondary small">Cotizador de envíos</span>
+  </header>
+
+  <section class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+      <div class="mb-4">
+        <span class="eyebrow">COTIZA TU ENVÍO</span>
+        <h1 class="display-5 fw-bold mt-3">Envía fácil.<br>Compara tus opciones.</h1>
+        <p class="lead text-secondary mt-3">
+          Ingresa los datos de tu envío para consultar las opciones de paquetería disponibles.
+        </p>
+      </div>
+
+      <section class="card border-0 shadow-sm quote-card">
+        <div class="card-body p-4 p-md-5">
+          <h2 class="h5 fw-bold mb-1">Datos del envío</h2>
+          <p class="text-secondary small mb-4">
+            Los campos marcados con <span class="required-mark">*</span> son obligatorios.
+          </p>
+
+          <form [formGroup]="quoteForm" (ngSubmit)="onSubmit()" novalidate>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="originPostalCode" class="form-label">
+                  Código postal de origen <span class="required-mark">*</span>
+                </label>
+                <input
+                  id="originPostalCode"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="postal-code"
+                  maxlength="5"
+                  pattern="[0-9]{5}"
+                  required
+                  class="form-control"
+                  placeholder="Ej. 64000"
+                  formControlName="originPostalCode"
+                  (input)="sanitizePostalCode('originPostalCode', $event)"
+                  [class.is-invalid]="originPostalCode.invalid && originPostalCode.touched"
+                >
+                @if (originPostalCode.hasError('required') && originPostalCode.touched) {
+                  <div class="invalid-feedback">Ingresa el código postal de origen.</div>
+                } @else if (originPostalCode.invalid && originPostalCode.touched) {
+                  <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="destinationPostalCode" class="form-label">
+                  Código postal de destino <span class="required-mark">*</span>
+                </label>
+                <input
+                  id="destinationPostalCode"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="postal-code"
+                  maxlength="5"
+                  pattern="[0-9]{5}"
+                  required
+                  class="form-control"
+                  placeholder="Ej. 06000"
+                  formControlName="destinationPostalCode"
+                  (input)="sanitizePostalCode('destinationPostalCode', $event)"
+                  [class.is-invalid]="destinationPostalCode.invalid && destinationPostalCode.touched"
+                >
+                @if (destinationPostalCode.hasError('required') && destinationPostalCode.touched) {
+                  <div class="invalid-feedback">Ingresa el código postal de destino.</div>
+                } @else if (destinationPostalCode.invalid && destinationPostalCode.touched) {
+                  <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
+                }
+              </div>
+
+              <div class="col-md-6">
+                <label for="weight" class="form-label">
+                  Peso del paquete (kg) <span class="required-mark">*</span>
+                </label>
+                <input
+                  id="weight"
+                  type="text"
+                  inputmode="decimal"
+                  required
+                  class="form-control"
+                  placeholder="Ej. 2.5"
+                  formControlName="weight"
+                  (input)="sanitizeWeight($event)"
+                  [class.is-invalid]="weight.invalid && weight.touched"
+                >
+                @if (weight.hasError('required') && weight.touched) {
+                  <div class="invalid-feedback">Ingresa el peso del paquete.</div>
+                } @else if (weight.invalid && weight.touched) {
+                  <div class="invalid-feedback">Ingresa un peso mayor que 0 y hasta 1,000 kg, con máximo 3 decimales.</div>
+                }
+                <div class="form-text">Máximo 1,000 kg. Se permiten hasta 3 decimales.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label for="email" class="form-label">
+                  Correo electrónico <span class="required-mark">*</span>
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  maxlength="254"
+                  autocomplete="email"
+                  required
+                  class="form-control"
+                  placeholder="tu@correo.com"
+                  formControlName="email"
+                  (input)="sanitizeEmail($event)"
+                  [class.is-invalid]="email.invalid && email.touched"
+                >
+                @if (email.hasError('required') && email.touched) {
+                  <div class="invalid-feedback">Ingresa tu correo electrónico.</div>
+                } @else if (email.invalid && email.touched) {
+                  <div class="invalid-feedback">Ingresa un correo electrónico con formato válido.</div>
+                }
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <button type="submit" class="btn btn-primary btn-lg w-100">
+                Consultar opciones de envío
+              </button>
+            </div>
+
+            @if (statusMessage) {
+              <div class="alert alert-info mt-4 mb-0" role="status">
+                {{ statusMessage }}
+              </div>
+            }
+          </form>
+        </div>
+      </section>
+
+      <p class="text-center text-secondary small mt-4">
+        Las opciones y tarifas se mostrarán de acuerdo con la cobertura y los precios disponibles.
+      </p>
+    </div>
+  </section>
+</main>
