@@ -177,3 +177,24 @@ def test_rejects_invalid_pagination_parameters(client, query):
     )
 
     assert response.status_code == 422
+
+@pytest.mark.parametrize(
+    "missing_setting",
+    ["ADMIN_USERNAME", "ADMIN_PASSWORD"],
+)
+def test_returns_503_when_admin_credentials_are_not_configured(
+    client,
+    monkeypatch,
+    missing_setting,
+):
+    monkeypatch.delenv(missing_setting, raising=False)
+
+    response = client.get(
+        "/api/leads",
+        headers=admin_headers(),
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "La autenticación administrativa no está configurada."
+    )

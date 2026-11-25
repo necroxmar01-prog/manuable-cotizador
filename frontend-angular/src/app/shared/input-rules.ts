@@ -83,3 +83,21 @@ export function emailFormatValidator(
     ? null
     : { invalidEmailFormat: true };
 }
+
+
+
+export function sanitizeAlphanumericAt(value: string): string {
+  return value.replace(/[^A-Za-z0-9@]/g, '');
+}
+
+export function alphanumericAtValidator(
+  control: AbstractControl
+): ValidationErrors | null {
+  const value = String(control.value ?? '');
+
+  if (!value) return null;
+
+  return /^[A-Za-z0-9@]+$/.test(value)
+    ? null
+    : { invalidCharacters: true };
+}

@@ -6,7 +6,9 @@ import {
   postalCodeValidator,
   sanitizeEmail,
   sanitizePostalCode,
-  sanitizeWeight
+  sanitizeWeight,
+  alphanumericAtValidator,
+  sanitizeAlphanumericAt
 } from './input-rules';
 
 describe('Reglas reutilizables de entradas', () => {
@@ -80,6 +82,46 @@ describe('Reglas reutilizables de entradas', () => {
     it('debe rechazar acentos y diagonales si llegan directamente al validador', () => {
       expect(emailFormatValidator(new FormControl('José@gmail.com'))).not.toBeNull();
       expect(emailFormatValidator(new FormControl('Jose/test@gmail.com'))).not.toBeNull();
+    });
+  });
+    describe('Usuario y contraseña', () => {
+    it('debe conservar únicamente letras sin acentos, números y arroba', () => {
+      expect(sanitizeAlphanumericAt('Admin123@')).toBe('Admin123@');
+      expect(sanitizeAlphanumericAt('José #admin-01.test')).toBe('Josadmin01test');
+    });
+
+    it('debe preservar mayúsculas y minúsculas', () => {
+      expect(sanitizeAlphanumericAt('AdminABC')).toBe('AdminABC');
+      expect(sanitizeAlphanumericAt('A1@z')).toBe('A1@z');
+    });
+
+    it('debe aceptar valores con caracteres permitidos', () => {
+      expect(
+        alphanumericAtValidator(new FormControl('Admin123@'))
+      ).toBeNull();
+    });
+
+    it('debe aceptar valores vacíos para que required los controle por separado', () => {
+      expect(
+        alphanumericAtValidator(new FormControl(''))
+      ).toBeNull();
+    });
+
+    it('debe rechazar acentos, espacios y caracteres especiales no permitidos', () => {
+      const invalidValues = [
+        'José',
+        'usuario nombre',
+        'user#123',
+        'user-123',
+        'user.test',
+        'user/123'
+      ];
+
+      invalidValues.forEach(value => {
+        expect(
+          alphanumericAtValidator(new FormControl(value))
+        ).not.toBeNull();
+      });
     });
   });
 });

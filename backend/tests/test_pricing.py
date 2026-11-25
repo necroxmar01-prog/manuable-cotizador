@@ -145,3 +145,40 @@ def test_orders_tariffs_by_price_ascending(db_session):
         Decimal("200.00"),
         Decimal("350.00"),
     ]
+
+
+@pytest.mark.parametrize(
+    "weight",
+    ["1.000", "10.000"],
+)
+def test_includes_exact_weight_range_boundaries(db_session, weight):
+    carrier = add_carrier(db_session)
+    expected = add_tariff(db_session, carrier)
+
+    result = get_available_tariffs(
+        db_session,
+        zone=2,
+        weight_kg=Decimal(weight),
+        quote_date=date(2026, 11, 24),
+    )
+
+    assert len(result) == 1
+    assert result[0].id == expected.id
+
+
+@pytest.mark.parametrize(
+    "weight",
+    ["0.999", "10.001"],
+)
+def test_excludes_weights_outside_tariff_range(db_session, weight):
+    carrier = add_carrier(db_session)
+    add_tariff(db_session, carrier)
+
+    result = get_available_tariffs(
+        db_session,
+        zone=2,
+        weight_kg=Decimal(weight),
+        quote_date=date(2026, 11, 24),
+    )
+
+    assert result == []

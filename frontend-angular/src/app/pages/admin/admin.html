@@ -1,4 +1,3 @@
-
 <div class="admin-layout">
   <nav class="navbar bg-white border-bottom px-4 py-3">
     <a routerLink="/cotizador" class="brand text-decoration-none">
@@ -8,6 +7,13 @@
 
     <div class="d-flex align-items-center gap-3">
       <span class="text-secondary small">Panel de Comercial</span>
+
+      @if (isAuthenticated) {
+      <button type="button" class="btn btn-outline-danger btn-sm" (click)="logout()">
+        Cerrar sesión
+      </button>
+      }
+
       <a routerLink="/cotizador" class="btn btn-outline-primary btn-sm">
         Ir al cotizador
       </a>
@@ -15,28 +21,61 @@
   </nav>
 
   <main class="container-fluid px-4 px-lg-5 py-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-      <div>
-        <span class="eyebrow">ADMINISTRACIÓN</span>
-        <h1 class="h3 fw-bold mt-2 mb-1">Leads y cotizaciones</h1>
-        <p class="text-secondary mb-0">
-          Consulta las solicitudes recibidas y sus opciones de envío.
-        </p>
-      </div>
-
-      <button type="button" class="btn btn-primary" disabled>
-        <span class="me-2">↓</span>
-        Exportar información
-      </button>
+    <div class="mb-4">
+      <span class="eyebrow">ADMINISTRACIÓN</span>
+      <h1 class="h3 fw-bold mt-2 mb-1">Leads y cotizaciones</h1>
+      <p class="text-secondary mb-0">
+        Consulta las solicitudes recibidas y sus opciones de envío.
+      </p>
     </div>
+
+    @if (!isAuthenticated) {
+    <section class="card border-0 shadow-sm mx-auto login-card">
+      <div class="card-body p-4 p-md-5">
+        <h2 class="h5 fw-bold mb-2">Acceso de Comercial</h2>
+        <p class="text-secondary small mb-4">
+          Ingresa tus credenciales para consultar los leads.
+        </p>
+
+        <form (submit)="$event.preventDefault(); login()">
+          <div class="mb-3">
+            <label for="username" class="form-label">Usuario</label>
+            <input id="username" name="username" type="text" class="form-control" [(ngModel)]="username"
+              autocomplete="username" required (ngModelChange)="sanitizeUsername($event)" />
+          </div>
+
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="password" name="password" [(ngModel)]="password"
+              (ngModelChange)="sanitizePassword($event)" required />
+          </div>
+
+          @if (errorMessage) {
+          <div class="alert alert-danger small" role="alert">
+            {{ errorMessage }}
+          </div>
+          }
+
+          <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading">
+            {{ isLoading ? 'Verificando...' : 'Iniciar sesión' }}
+          </button>
+        </form>
+      </div>
+    </section>
+    } @else {
+    @if (errorMessage) {
+    <div class="alert alert-danger" role="alert">
+      {{ errorMessage }}
+    </div>
+    }
 
     <section class="row g-3 mb-4">
       <div class="col-sm-6 col-xl-4">
         <article class="card border-0 shadow-sm metric-card">
           <div class="card-body p-4">
             <span class="text-secondary small">Total de leads</span>
-            <div class="metric-value mt-2">—</div>
-            <p class="text-secondary small mb-0">Pendiente de conexión con API</p>
+            <div class="metric-value mt-2">{{ totalLeads }}</div>
+            <p class="text-secondary small mb-0">Solicitudes registradas</p>
           </div>
         </article>
       </div>
@@ -45,8 +84,8 @@
         <article class="card border-0 shadow-sm metric-card">
           <div class="card-body p-4">
             <span class="text-secondary small">Cotizaciones generadas</span>
-            <div class="metric-value mt-2">—</div>
-            <p class="text-secondary small mb-0">Pendiente de conexión con API</p>
+            <div class="metric-value mt-2">{{ totalQuotes }}</div>
+            <p class="text-secondary small mb-0">En los leads de esta página</p>
           </div>
         </article>
       </div>
@@ -55,8 +94,8 @@
         <article class="card border-0 shadow-sm metric-card">
           <div class="card-body p-4">
             <span class="text-secondary small">Sin opciones disponibles</span>
-            <div class="metric-value mt-2">—</div>
-            <p class="text-secondary small mb-0">Pendiente de conexión con API</p>
+            <div class="metric-value mt-2">{{ quotesWithoutOptions }}</div>
+            <p class="text-secondary small mb-0">Cotizaciones sin resultados</p>
           </div>
         </article>
       </div>
@@ -71,6 +110,22 @@
           </p>
         </div>
 
+        @if (isLoading) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <p class="text-secondary small mt-3 mb-0">Cargando solicitudes...</p>
+        </div>
+        } @else if (leads.length === 0) {
+        <div class="text-center py-5">
+          <div class="empty-icon mb-3">↗</div>
+          <h3 class="h6 fw-bold">Todavía no hay información</h3>
+          <p class="text-secondary small mb-0">
+            Los leads aparecerán aquí cuando se registren mediante el cotizador.
+          </p>
+        </div>
+        } @else {
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
@@ -84,19 +139,46 @@
               </tr>
             </thead>
             <tbody>
+              @for (lead of leads; track lead.id) {
+              @for (quote of lead.quotes; track quote.id) {
               <tr>
-                <td colspan="6" class="text-center py-5">
-                  <div class="empty-icon mb-3">↗</div>
-                  <h3 class="h6 fw-bold">Todavía no hay información</h3>
-                  <p class="text-secondary small mb-0">
-                    Los leads aparecerán aquí cuando conectemos el panel con la API.
-                  </p>
+                <td class="px-4">{{ lead.email }}</td>
+                <td>{{ quote.origin_postal_code }}</td>
+                <td>{{ quote.destination_postal_code }}</td>
+                <td>{{ quote.weight_kg }} kg</td>
+                <td>{{ quote.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <span class="badge text-bg-primary">
+                    {{ quote.options.length }}
+                  </span>
                 </td>
               </tr>
+              }
+              }
             </tbody>
           </table>
         </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 border-top">
+          <span class="text-secondary small">
+            Página {{ page }} de {{ totalPages }} · {{ totalLeads }} leads
+          </span>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="loadPage(page - 1)"
+              [disabled]="page <= 1 || isLoading">
+              Anterior
+            </button>
+
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="loadPage(page + 1)"
+              [disabled]="page >= totalPages || isLoading">
+              Siguiente
+            </button>
+          </div>
+        </div>
+        }
       </div>
     </section>
+    }
   </main>
 </div>

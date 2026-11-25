@@ -72,7 +72,7 @@ def test_rejects_negative_price():
 
 def test_rejects_unknown_carrier_and_zone_out_of_range():
     with pytest.raises(ValueError, match="desconocida"):
-        parse_carrier("PaqueterÃ­a Rayo")
+        parse_carrier("Paquetería Rayo")
     with pytest.raises(ValueError, match="permitido"):
         parse_zone("Zona 7")
 

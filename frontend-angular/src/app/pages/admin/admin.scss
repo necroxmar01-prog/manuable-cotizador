@@ -74,3 +74,26 @@
     padding-top: 2rem !important;
   }
 }
+
+
+.login-card {
+  width: 100%;
+  max-width: 460px;
+  border-radius: 12px;
+}
+
+.login-card .form-control {
+  min-height: 44px;
+}
+
+.login-card .btn-primary {
+  min-height: 44px;
+}
+
+.table td {
+  font-size: 0.9rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
