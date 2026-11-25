@@ -1,3 +1,4 @@
+
 import re
 from decimal import Decimal
 
@@ -12,11 +13,22 @@ class QuoteRequest(BaseModel):
     weight_kg: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
     email: str = Field(min_length=3, max_length=254)
 
+    @field_validator(
+        "origin_postal_code",
+        "destination_postal_code",
+        mode="before"
+    )
+    @classmethod
+    def strip_postal_code(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
+
     @field_validator("origin_postal_code", "destination_postal_code")
     @classmethod
     def validate_postal_code(cls, value: str) -> str:
         if not re.fullmatch(r"\d{5}", value):
-            raise ValueError("El código postal debe contener exactamente cinco dígitos.")
+            raise ValueError(
+                "El código postal debe contener exactamente cinco dígitos."
+            )
         return value
 
     @field_validator("email")

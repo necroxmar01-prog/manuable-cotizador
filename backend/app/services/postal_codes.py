@@ -18,9 +18,14 @@ def get_postal_code_coordinates(
 ) -> tuple[float, float]:
     """Obtiene latitud y longitud de un código postal mexicano."""
 
-    if not isinstance(postal_code, str) or not re.fullmatch(
-        r"\d{5}", postal_code
-    ):
+    if not isinstance(postal_code, str):
+        raise ValueError(
+            "El código postal debe contener exactamente cinco dígitos."
+        )
+
+    postal_code = postal_code.strip()
+
+    if not re.fullmatch(r"\d{5}", postal_code):
         raise ValueError(
             "El código postal debe contener exactamente cinco dígitos."
         )

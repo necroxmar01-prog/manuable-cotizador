@@ -22,6 +22,7 @@ class Tariff(Base):
     delivery_days_min: Mapped[int] = mapped_column(Integer)
     delivery_days_max: Mapped[int] = mapped_column(Integer)
     valid_from: Mapped[date] = mapped_column(Date, index=True)
+    valid_to: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
     source_file: Mapped[str] = mapped_column(String(120))
     source_row: Mapped[int] = mapped_column(Integer)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)

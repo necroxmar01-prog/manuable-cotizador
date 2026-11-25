@@ -5,7 +5,7 @@ import hashlib
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -250,9 +250,60 @@ def import_carriers(session: Session, path: Path) -> int:
     return created
 
 
+def validate_tariff_period(
+    session: Session,
+    carrier_id: int,
+    normalized: NormalizedTariff,
+) -> list[Tariff]:
+    same_tariff_range = (
+        Tariff.carrier_id == carrier_id,
+        Tariff.zone == normalized.zone,
+        Tariff.weight_min_kg == normalized.weight_min_kg,
+        Tariff.weight_max_kg == normalized.weight_max_kg,
+    )
+
+    conflicting_future = session.scalar(
+        select(Tariff.id).where(
+            *same_tariff_range,
+            Tariff.valid_from >= normalized.valid_from,
+            (
+                Tariff.valid_to.is_(None)
+                | (Tariff.valid_to >= normalized.valid_from)
+            ),
+        )
+    )
+
+    if conflicting_future:
+        raise ValueError(
+            "La vigencia de la tarifa se solapa con una versión "
+            "posterior ya registrada"
+        )
+
+    return session.scalars(
+        select(Tariff).where(
+            *same_tariff_range,
+            Tariff.valid_from < normalized.valid_from,
+            (
+                Tariff.valid_to.is_(None)
+                | (Tariff.valid_to >= normalized.valid_from)
+            ),
+        )
+    ).all()
+
+def close_previous_tariff_versions(
+    previous_versions: list[Tariff],
+    new_valid_from: date,
+) -> None:
+    last_valid_day = new_valid_from - timedelta(days=1)
+
+    for previous in previous_versions:
+        previous.valid_to = last_valid_day
+
+
 def import_tariffs(session: Session, path: Path) -> dict[str, int]:
     counts = {"accepted": 0, "corrected": 0, "rejected": 0}
     seen_in_file: set[str] = set()
+
     with path.open(encoding="utf-8-sig", newline="") as file:
         rows = list(csv.DictReader(file))
 
@@ -260,21 +311,44 @@ def import_tariffs(session: Session, path: Path) -> dict[str, int]:
     session.add(batch)
     session.flush()
 
-    carriers = {carrier.name: carrier for carrier in session.scalars(select(Carrier)).all()}
+    carriers = {
+        carrier.name: carrier
+        for carrier in session.scalars(select(Carrier)).all()
+    }
+
     for row_number, row in enumerate(rows, start=2):
         status = "rejected"
         messages: list[str] = []
         tariff_id = None
+
         try:
             normalized = normalize_row(row)
             messages.extend(normalized.messages)
+
             carrier = carriers.get(normalized.carrier_name)
             if carrier is None:
-                raise ValueError(f"La paquetería {normalized.carrier_name} no existe en paqueterias.csv")
+                raise ValueError(
+                    f"La paquetería {normalized.carrier_name} "
+                    "no existe en paqueterias.csv"
+                )
+
             fingerprint = normalized.fingerprint()
-            if fingerprint in seen_in_file or session.scalar(select(Tariff.id).where(Tariff.fingerprint == fingerprint)):
-                raise ValueError("Tarifa duplicada: ya existe un registro idéntico normalizado")
-            seen_in_file.add(fingerprint)
+
+            existing_tariff = session.scalar(
+                select(Tariff.id).where(Tariff.fingerprint == fingerprint)
+            )
+
+            if fingerprint in seen_in_file or existing_tariff:
+                raise ValueError(
+                    "Tarifa duplicada: ya existe un registro idéntico normalizado"
+                )
+
+            previous_versions = validate_tariff_period(
+                session,
+                carrier.id,
+                normalized,
+            )
+
             tariff = Tariff(
                 carrier_id=carrier.id,
                 zone=normalized.zone,
@@ -288,28 +362,38 @@ def import_tariffs(session: Session, path: Path) -> dict[str, int]:
                 source_row=row_number,
                 fingerprint=fingerprint,
             )
+
             session.add(tariff)
             session.flush()
+
+            close_previous_tariff_versions(
+                previous_versions,
+                normalized.valid_from,
+            )
+
+            seen_in_file.add(fingerprint)
             tariff_id = tariff.id
             status = "corrected" if messages else "accepted"
+
         except ValueError as exc:
             messages.append(str(exc))
-        except Exception:
-            # Deja que errores inesperados de DB interrumpan la transacción.
-            raise
 
         counts[status] += 1
-        session.add(ImportRecord(
-            batch_id=batch.id,
-            row_number=row_number,
-            status=status,
-            raw_data=row,
-            messages=messages,
-            tariff_id=tariff_id,
-        ))
+
+        session.add(
+            ImportRecord(
+                batch_id=batch.id,
+                row_number=row_number,
+                status=status,
+                raw_data=row,
+                messages=messages,
+                tariff_id=tariff_id,
+            )
+        )
 
     batch.accepted_rows = counts["accepted"]
     batch.corrected_rows = counts["corrected"]
     batch.rejected_rows = counts["rejected"]
+
     session.flush()
     return counts

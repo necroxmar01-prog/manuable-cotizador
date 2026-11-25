@@ -139,3 +139,147 @@ def test_normalize_row_reports_multiple_validation_errors():
     assert "entrega ausentes" in message
     assert "Fecha de vigencia ausente" in message
 
+
+def create_tariff_test_session(tmp_path):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from app.db.base import Base
+    from app.importers.tariffs import import_carriers
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    carriers_file = tmp_path / "paqueterias.csv"
+    carriers_file.write_text(
+        "carrier_id,nombre,tipo_servicio,activo\n"
+        "CARR-01,DHL,aereo,si\n",
+        encoding="utf-8",
+    )
+
+    session = Session(engine)
+    import_carriers(session, carriers_file)
+    session.commit()
+
+    return engine, session
+
+
+def write_tariff_file(tmp_path, filename, row):
+    header = (
+        "paqueteria,zona,peso_min,peso_max,unidad,"
+        "precio,dias_entrega,vigencia_desde\n"
+    )
+    path = tmp_path / filename
+    path.write_text(header + row, encoding="utf-8")
+    return path
+
+
+def test_new_tariff_closes_previous_version(tmp_path):
+    from sqlalchemy import select
+
+    from app.importers.tariffs import import_tariffs
+    from app.models import Tariff
+
+    engine, session = create_tariff_test_session(tmp_path)
+
+    try:
+        old_file = write_tariff_file(
+            tmp_path,
+            "tarifa_anterior.csv",
+            "DHL,Z3,0,1,kg,250.00,1,2026-01-01\n",
+        )
+        new_file = write_tariff_file(
+            tmp_path,
+            "tarifa_nueva.csv",
+            "DHL,Z3,0,1,kg,300.00,1,2026-12-01\n",
+        )
+
+        import_tariffs(session, old_file)
+        session.commit()
+
+        report = import_tariffs(session, new_file)
+        session.commit()
+
+        tariffs = session.scalars(
+            select(Tariff).order_by(Tariff.valid_from)
+        ).all()
+
+        assert report["accepted"] + report["corrected"] == 1
+        assert len(tariffs) == 2
+        assert tariffs[0].valid_to == date(2026, 11, 30)
+        assert tariffs[1].valid_from == date(2026, 12, 1)
+        assert tariffs[1].valid_to is None
+
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def test_rejects_tariff_overlapping_future_version(tmp_path):
+    from sqlalchemy import select
+
+    from app.importers.tariffs import import_tariffs
+    from app.models import Tariff
+
+    engine, session = create_tariff_test_session(tmp_path)
+
+    try:
+        future_file = write_tariff_file(
+            tmp_path,
+            "tarifa_futura.csv",
+            "DHL,Z3,0,1,kg,300.00,1,2026-12-01\n",
+        )
+        overlapping_file = write_tariff_file(
+            tmp_path,
+            "tarifa_intermedia.csv",
+            "DHL,Z3,0,1,kg,275.00,1,2026-11-01\n",
+        )
+
+        import_tariffs(session, future_file)
+        session.commit()
+
+        report = import_tariffs(session, overlapping_file)
+        session.commit()
+
+        tariffs = session.scalars(select(Tariff)).all()
+
+        assert report["rejected"] == 1
+        assert len(tariffs) == 1
+        assert tariffs[0].valid_from == date(2026, 12, 1)
+        assert tariffs[0].valid_to is None
+
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def test_rejects_tariff_already_imported_in_previous_batch(tmp_path):
+    from sqlalchemy import select
+
+    from app.importers.tariffs import import_tariffs
+    from app.models import Tariff
+
+    engine, session = create_tariff_test_session(tmp_path)
+
+    try:
+        tariff_file = write_tariff_file(
+            tmp_path,
+            "tarifa.csv",
+            "DHL,Z3,0,1,kg,250.00,1,2026-01-01\n",
+        )
+
+        import_tariffs(session, tariff_file)
+        session.commit()
+
+        report = import_tariffs(session, tariff_file)
+        session.commit()
+
+        tariffs = session.scalars(select(Tariff)).all()
+
+        assert report["rejected"] == 1
+        assert len(tariffs) == 1
+        assert tariffs[0].valid_to is None
+
+    finally:
+        session.close()
+        engine.dispose()

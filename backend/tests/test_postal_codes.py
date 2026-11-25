@@ -39,7 +39,7 @@ def test_returns_coordinates(monkeypatch):
 
 @pytest.mark.parametrize(
     "postal_code",
-    ["6600", "123456", "ABCDE", "", " 06600", None],
+    ["6600", "123456", "ABCDE", "", "06 600", None],
 )
 def test_rejects_invalid_postal_codes(postal_code):
     with pytest.raises(ValueError):
@@ -104,3 +104,26 @@ def test_missing_coordinates(monkeypatch):
 
     with pytest.raises(PostalCodeServiceError):
         get_postal_code_coordinates("06600")
+
+def test_normalizes_surrounding_spaces(monkeypatch):
+    response_data = {
+        "places": [
+            {
+                "latitude": "19.4326",
+                "longitude": "-99.1332",
+            }
+        ]
+    }
+
+    def fake_urlopen(url, timeout):
+        assert url.endswith("/mx/06600")
+        return BytesIO(json.dumps(response_data).encode("utf-8"))
+
+    monkeypatch.setattr(
+        "app.services.postal_codes.urlopen",
+        fake_urlopen,
+    )
+
+    coordinates = get_postal_code_coordinates(" 06600 ")
+
+    assert coordinates == (19.4326, -99.1332)

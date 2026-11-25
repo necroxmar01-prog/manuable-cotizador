@@ -46,6 +46,7 @@ def add_tariff(
     maximum: str = "10.000",
     price: str = "250.00",
     valid_from: date = date(2026, 1, 1),
+    valid_to: date | None = None,
 ) -> Tariff:
     tariff = Tariff(
         carrier_id=carrier.id,
@@ -56,6 +57,7 @@ def add_tariff(
         delivery_days_min=3,
         delivery_days_max=5,
         valid_from=valid_from,
+        valid_to=valid_to,
         source_file="test.csv",
         source_row=1,
         fingerprint=f"fingerprint-{carrier.id}-{zone}-{price}-{valid_from}",
@@ -179,6 +181,44 @@ def test_excludes_weights_outside_tariff_range(db_session, weight):
         zone=2,
         weight_kg=Decimal(weight),
         quote_date=date(2026, 11, 24),
+    )
+
+    assert result == []
+
+def test_includes_tariff_on_its_last_valid_day(db_session):
+    carrier = add_carrier(db_session)
+    expected = add_tariff(
+        db_session,
+        carrier,
+        valid_from=date(2026, 1, 1),
+        valid_to=date(2026, 11, 30),
+    )
+
+    result = get_available_tariffs(
+        db_session,
+        zone=2,
+        weight_kg=Decimal("5.000"),
+        quote_date=date(2026, 11, 30),
+    )
+
+    assert len(result) == 1
+    assert result[0].id == expected.id
+
+
+def test_excludes_tariff_after_its_last_valid_day(db_session):
+    carrier = add_carrier(db_session)
+    add_tariff(
+        db_session,
+        carrier,
+        valid_from=date(2026, 1, 1),
+        valid_to=date(2026, 11, 30),
+    )
+
+    result = get_available_tariffs(
+        db_session,
+        zone=2,
+        weight_kg=Decimal("5.000"),
+        quote_date=date(2026, 12, 1),
     )
 
     assert result == []

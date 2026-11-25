@@ -195,3 +195,76 @@ def test_rejects_invalid_quote_data(client, monkeypatch):
     response = client.post("/api/quotes", json=payload)
 
     assert response.status_code == 422
+
+
+def test_normalizes_postal_codes_with_surrounding_spaces(
+    client,
+    db_session,
+    monkeypatch,
+):
+    add_tariff(db_session)
+    mock_postal_coordinates(monkeypatch)
+
+    payload = quote_payload()
+    payload["origin_postal_code"] = " 06600 "
+    payload["destination_postal_code"] = " 64000 "
+
+    response = client.post("/api/quotes", json=payload)
+
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["origin_postal_code"] == "06600"
+    assert data["destination_postal_code"] == "64000"
+
+    quote = db_session.scalar(select(Quote))
+    assert quote.origin_postal_code == "06600"
+    assert quote.destination_postal_code == "64000"
+
+
+def test_rejects_postal_codes_with_internal_spaces(client, monkeypatch):
+    def postal_service_must_not_be_called(postal_code: str):
+        pytest.fail("No debería consultar el servicio postal.")
+
+    monkeypatch.setattr(
+        quotes_api,
+        "get_postal_code_coordinates",
+        postal_service_must_not_be_called,
+    )
+
+    payload = quote_payload()
+    payload["origin_postal_code"] = "06 600"
+
+    response = client.post("/api/quotes", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_preserves_leading_zeros_after_postal_code_normalization(
+    client,
+    db_session,
+    monkeypatch,
+):
+    add_tariff(db_session)
+
+    def fake_coordinates(postal_code: str):
+        coordinates = {
+            "06600": (19.4326, -99.1332),
+            "64000": (25.6866, -100.3161),
+        }
+        assert postal_code in coordinates
+        return coordinates[postal_code]
+
+    monkeypatch.setattr(
+        quotes_api,
+        "get_postal_code_coordinates",
+        fake_coordinates,
+    )
+
+    payload = quote_payload()
+    payload["origin_postal_code"] = " 06600 "
+
+    response = client.post("/api/quotes", json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["origin_postal_code"] == "06600"

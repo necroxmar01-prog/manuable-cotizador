@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Carrier, Tariff
+from sqlalchemy import or_, select
 
 
 def get_available_tariffs(
@@ -28,6 +29,10 @@ def get_available_tariffs(
             Tariff.weight_min_kg <= weight_kg,
             Tariff.weight_max_kg >= weight_kg,
             Tariff.valid_from <= effective_date,
+            or_(
+                Tariff.valid_to.is_(None),
+                Tariff.valid_to >= effective_date,
+            ),
         )
         .order_by(Tariff.price_mxn.asc())
     )
