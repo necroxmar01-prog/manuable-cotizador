@@ -1,11 +1,13 @@
-
-import { Component } from '@angular/core';
+﻿import { Component, inject } from '@angular/core';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
-  Validators
+  Validators,
 } from '@angular/forms';
+
+import { QuoteService, QuoteResponse } from '../../core/services/quote.service';
+import { CurrencyPipe } from '@angular/common';
 
 import {
   postalCodeValidator,
@@ -19,13 +21,18 @@ import {
 @Component({
   selector: 'app-quote',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CurrencyPipe],
   templateUrl: './quote.html',
   styleUrl: './quote.scss'
 })
 export class Quote {
+  private readonly quoteService = inject(QuoteService);
+
   submitted = false;
+  isLoading = false;
   statusMessage = '';
+  errorMessage = '';
+  quoteResult: QuoteResponse | null = null;
 
   quoteForm = new FormGroup({
     originPostalCode: new FormControl('', [
@@ -78,14 +85,39 @@ export class Quote {
   onSubmit(): void {
     this.submitted = true;
     this.statusMessage = '';
+    this.errorMessage = '';
+    this.quoteResult = null;
 
     if (this.quoteForm.invalid) {
       this.quoteForm.markAllAsTouched();
       return;
     }
 
-    this.statusMessage =
-      'Tus datos son válidos. La conexión con el servicio de cotizaciones está pendiente.';
+    const formValue = this.quoteForm.getRawValue();
+
+    this.isLoading = true;
+
+    this.quoteService.createQuote({
+      origin_postal_code: formValue.originPostalCode ?? '',
+      destination_postal_code: formValue.destinationPostalCode ?? '',
+      weight_kg: Number(formValue.weight),
+      email: formValue.email ?? ''
+    }).subscribe({
+      next: (response) => {
+        this.quoteResult = response;
+        this.statusMessage = 'Tu cotización se generó correctamente.';
+        this.isLoading = false;
+      },
+      error: (error) => {
+        const detail = error.error?.detail;
+
+        this.errorMessage = typeof detail === 'string'
+          ? detail
+          : 'No fue posible generar la cotización. Verifica tus datos e inténtalo nuevamente.';
+
+        this.isLoading = false;
+      }
+    });
   }
 
   get originPostalCode() {

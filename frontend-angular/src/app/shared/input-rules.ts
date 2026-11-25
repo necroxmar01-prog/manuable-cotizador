@@ -1,4 +1,4 @@
-import {
+﻿import {
   AbstractControl,
   ValidationErrors
 } from '@angular/forms';
@@ -55,11 +55,19 @@ export function sanitizeWeight(value: string): string {
     sanitized = parts[0] + '.' + parts[1].slice(0, 3);
   }
 
+  if (sanitized.length > 8) return '';
+
+  const number = Number(sanitized);
+
+  if (sanitized !== '' && number > 1000) return '';
+
   return sanitized;
 }
 
 export function sanitizeEmail(value: string): string {
-  return value.replace(/[^A-Za-z0-9._%+@-]/g, '');
+  return value
+    .replace(/[^A-Za-z0-9._%+@-]/g, '')
+    .toLowerCase();
 }
 
 export function emailFormatValidator(
@@ -69,7 +77,7 @@ export function emailFormatValidator(
 
   if (!value) return null;
 
-  const pattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const pattern = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
   return pattern.test(value)
     ? null

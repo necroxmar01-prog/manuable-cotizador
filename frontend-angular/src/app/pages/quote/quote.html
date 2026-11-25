@@ -1,4 +1,4 @@
-<main class="container py-5">
+﻿<main class="container py-5">
   <header class="d-flex justify-content-between align-items-center mb-5">
     <a class="brand text-decoration-none" href="/">
       <span class="brand-mark">M</span>
@@ -30,24 +30,14 @@
                 <label for="originPostalCode" class="form-label">
                   Código postal de origen <span class="required-mark">*</span>
                 </label>
-                <input
-                  id="originPostalCode"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="postal-code"
-                  maxlength="5"
-                  pattern="[0-9]{5}"
-                  required
-                  class="form-control"
-                  placeholder="Ej. 64000"
-                  formControlName="originPostalCode"
-                  (input)="sanitizePostalCode('originPostalCode', $event)"
-                  [class.is-invalid]="originPostalCode.invalid && originPostalCode.touched"
-                >
+                <input id="originPostalCode" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5"
+                  pattern="[0-9]{5}" required class="form-control" placeholder="Ej. 64000"
+                  formControlName="originPostalCode" (input)="sanitizePostalCode('originPostalCode', $event)"
+                  [class.is-invalid]="originPostalCode.invalid && originPostalCode.touched">
                 @if (originPostalCode.hasError('required') && originPostalCode.touched) {
-                  <div class="invalid-feedback">Ingresa el código postal de origen.</div>
+                <div class="invalid-feedback">Ingresa el código postal de origen.</div>
                 } @else if (originPostalCode.invalid && originPostalCode.touched) {
-                  <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
+                <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
                 }
               </div>
 
@@ -55,24 +45,14 @@
                 <label for="destinationPostalCode" class="form-label">
                   Código postal de destino <span class="required-mark">*</span>
                 </label>
-                <input
-                  id="destinationPostalCode"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="postal-code"
-                  maxlength="5"
-                  pattern="[0-9]{5}"
-                  required
-                  class="form-control"
-                  placeholder="Ej. 06000"
-                  formControlName="destinationPostalCode"
-                  (input)="sanitizePostalCode('destinationPostalCode', $event)"
-                  [class.is-invalid]="destinationPostalCode.invalid && destinationPostalCode.touched"
-                >
+                <input id="destinationPostalCode" type="text" inputmode="numeric" autocomplete="postal-code"
+                  maxlength="5" pattern="[0-9]{5}" required class="form-control" placeholder="Ej. 06000"
+                  formControlName="destinationPostalCode" (input)="sanitizePostalCode('destinationPostalCode', $event)"
+                  [class.is-invalid]="destinationPostalCode.invalid && destinationPostalCode.touched">
                 @if (destinationPostalCode.hasError('required') && destinationPostalCode.touched) {
-                  <div class="invalid-feedback">Ingresa el código postal de destino.</div>
+                <div class="invalid-feedback">Ingresa el código postal de destino.</div>
                 } @else if (destinationPostalCode.invalid && destinationPostalCode.touched) {
-                  <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
+                <div class="invalid-feedback">Debe contener exactamente 5 dígitos numéricos.</div>
                 }
               </div>
 
@@ -80,21 +60,14 @@
                 <label for="weight" class="form-label">
                   Peso del paquete (kg) <span class="required-mark">*</span>
                 </label>
-                <input
-                  id="weight"
-                  type="text"
-                  inputmode="decimal"
-                  required
-                  class="form-control"
-                  placeholder="Ej. 2.5"
-                  formControlName="weight"
-                  (input)="sanitizeWeight($event)"
-                  [class.is-invalid]="weight.invalid && weight.touched"
-                >
+                <input id="weight" type="text" inputmode="decimal" maxlength="8" required class="form-control"
+                  placeholder="Ej. 2.5" formControlName="weight" (input)="sanitizeWeight($event)"
+                  [class.is-invalid]="weight.invalid && weight.touched">
                 @if (weight.hasError('required') && weight.touched) {
-                  <div class="invalid-feedback">Ingresa el peso del paquete.</div>
+                <div class="invalid-feedback">Ingresa el peso del paquete.</div>
                 } @else if (weight.invalid && weight.touched) {
-                  <div class="invalid-feedback">Ingresa un peso mayor que 0 y hasta 1,000 kg, con máximo 3 decimales.</div>
+                <div class="invalid-feedback">Ingresa un peso mayor que 0 y hasta 1,000 kg, con máximo 3 decimales.
+                </div>
                 }
                 <div class="form-text">Máximo 1,000 kg. Se permiten hasta 3 decimales.</div>
               </div>
@@ -103,40 +76,101 @@
                 <label for="email" class="form-label">
                   Correo electrónico <span class="required-mark">*</span>
                 </label>
-                <input
-                  id="email"
-                  type="email"
-                  maxlength="254"
-                  autocomplete="email"
-                  required
-                  class="form-control"
-                  placeholder="tu@correo.com"
-                  formControlName="email"
-                  (input)="sanitizeEmail($event)"
-                  [class.is-invalid]="email.invalid && email.touched"
-                >
+                <input id="email" type="email" maxlength="254" autocomplete="email" autocapitalize="none"
+                  spellcheck="false" required class="form-control" placeholder="tu@correo.com" formControlName="email"
+                  (input)="sanitizeEmail($event)" [class.is-invalid]="email.invalid && email.touched">
                 @if (email.hasError('required') && email.touched) {
-                  <div class="invalid-feedback">Ingresa tu correo electrónico.</div>
+                <div class="invalid-feedback">Ingresa tu correo electrónico.</div>
                 } @else if (email.invalid && email.touched) {
-                  <div class="invalid-feedback">Ingresa un correo electrónico con formato válido.</div>
+                <div class="invalid-feedback">Ingresa un correo electrónico con formato válido.</div>
                 }
               </div>
             </div>
 
             <div class="mt-4">
-              <button type="submit" class="btn btn-primary btn-lg w-100">
+              <button type="submit" class="btn btn-primary btn-lg w-100" [disabled]="isLoading">
+                @if (isLoading) {
+                <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                Consultando...
+                } @else {
                 Consultar opciones de envío
+                }
               </button>
             </div>
 
             @if (statusMessage) {
-              <div class="alert alert-info mt-4 mb-0" role="status">
-                {{ statusMessage }}
-              </div>
+            <div class="alert alert-success mt-4 mb-0" role="status">
+              {{ statusMessage }}
+            </div>
+            }
+
+            @if (errorMessage) {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">
+              {{ errorMessage }}
+            </div>
             }
           </form>
         </div>
       </section>
+
+
+      @if (quoteResult; as result) {
+      <section class="mt-4" aria-live="polite">
+        <div class="card border-0 shadow-sm quote-card">
+          <div class="card-body p-4">
+            <h2 class="h5 fw-bold mb-3">Resumen de tu envío</h2>
+
+            <div class="row g-3 mb-4">
+              <div class="col-6">
+                <div class="text-secondary small">Distancia aproximada</div>
+                <div class="fw-semibold">{{ result.distance_km }} km</div>
+              </div>
+              <div class="col-6">
+                <div class="text-secondary small">Zona de envío</div>
+                <div class="fw-semibold">Zona {{ result.zone }}</div>
+              </div>
+            </div>
+
+            <h3 class="h6 fw-bold mb-3">Opciones de paquetería</h3>
+
+            @if (result.options.length > 0) {
+            <div class="d-flex flex-column gap-3">
+              @for (option of result.options; track $index) {
+              <article class="border rounded-3 p-3">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <h4 class="h6 fw-bold mb-1">{{ option.carrier_name }}</h4>
+                    <span class="text-secondary small">
+                      Servicio {{ option.service_type }}
+                    </span>
+                  </div>
+
+                  <div class="text-end">
+                    <div class="fw-bold fs-5">
+                      {{ option.price_mxn | currency:'MXN':'symbol-narrow':'1.2-2' }}
+                    </div>
+                    <span class="text-secondary small">MXN</span>
+                  </div>
+                </div>
+
+                <div class="text-secondary small mt-3">
+                  Entrega estimada:
+                  {{ option.delivery_days_min }}–{{ option.delivery_days_max }}
+                  días
+                </div>
+              </article>
+              }
+            </div>
+            } @else {
+            <div class="alert alert-warning mb-0">
+              No hay tarifas disponibles para las características de este envío.
+            </div>
+            }
+          </div>
+        </div>
+      </section>
+      }
+
 
       <p class="text-center text-secondary small mt-4">
         Las opciones y tarifas se mostrarán de acuerdo con la cobertura y los precios disponibles.
