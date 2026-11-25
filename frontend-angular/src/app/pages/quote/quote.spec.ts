@@ -71,7 +71,7 @@ describe('Cotizador (fase 2)', () => {
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Folio #42');
     expect(text).toContain('31/12/2026');
-    expect(text).toContain('peso volumétrico: 7.200 kg');
+    expect(text).toContain('Se cobra por tamaño de caja: 7.2 kg');
     expect(text).not.toContain('Consultando');
   });
 
@@ -90,5 +90,14 @@ describe('Cotizador (fase 2)', () => {
     );
 
     expect(component.errorMessage).toBe('El código postal debe tener 5 dígitos.');
+  });
+
+  it('no menciona el volumétrico cuando gana el peso real', () => {
+    const component = TestBed.createComponent(Quote).componentInstance;
+    const option = { weight_method: 'volumetrico', billable_weight_kg: '8.000' };
+
+    expect(component.chargedByVolume(option, '8.000')).toBe(false);
+    expect(component.chargedByVolume({ ...option, billable_weight_kg: '7.200' }, '2')).toBe(true);
+    expect(component.chargedByVolume({ weight_method: 'real', billable_weight_kg: '2' }, '2')).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { FormControl, FormsModule } from '@angular/forms';
 
 import {
@@ -21,7 +21,7 @@ import {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe, CurrencyPipe],
+  imports: [RouterLink, FormsModule, DatePipe, CurrencyPipe, DecimalPipe],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
 })

@@ -75,7 +75,7 @@ Para todos usa el correo `prueba@demo.mx`. "Hoy" significa cualquier fecha antes
 Precio de la opción y orden: las opciones salen de la más barata a la más cara. En cada resultado verifica también:
 
 - **Folio** (`Folio #N`) y la frase "Respetamos estos precios hasta el …": hoy + 30 días.
-- Con volumétrico: "Cobra por peso volumétrico: 7.200 kg".
+- Con volumétrico: "Se cobra por tamaño de caja: 7.2 kg (peso volumétrico)". Si gana el peso real (caja chica), no aparece esa leyenda.
 
 ## 3. Customer Care: validaciones del CP
 

@@ -1,0 +1,131 @@
+diff --git a/docs/PRUEBAS_MANUALES.md b/docs/PRUEBAS_MANUALES.md
+index d10d129..23d1a74 100644
+--- a/docs/PRUEBAS_MANUALES.md
++++ b/docs/PRUEBAS_MANUALES.md
+@@ -75,7 +75,7 @@ Para todos usa el correo `prueba@demo.mx`. "Hoy" significa cualquier fecha antes
+ Precio de la opción y orden: las opciones salen de la más barata a la más cara. En cada resultado verifica también:
+ 
+ - **Folio** (`Folio #N`) y la frase "Respetamos estos precios hasta el …": hoy + 30 días.
+-- Con volumétrico: "Cobra por peso volumétrico: 7.200 kg".
++- Con volumétrico: "Se cobra por tamaño de caja: 7.2 kg (peso volumétrico)". Si gana el peso real (caja chica), no aparece esa leyenda.
+ 
+ ## 3. Customer Care: validaciones del CP
+ 
+diff --git a/frontend-angular/src/app/pages/admin/admin.html b/frontend-angular/src/app/pages/admin/admin.html
+index fb81869..1dcb074 100644
+--- a/frontend-angular/src/app/pages/admin/admin.html
++++ b/frontend-angular/src/app/pages/admin/admin.html
+@@ -212,9 +212,9 @@
+                 <td>{{ lead.email }}</td>
+                 <td>{{ quote.origin_postal_code }} → {{ quote.destination_postal_code }}<br>
+                   <span class="text-secondary small">Zona {{ quote.zone }}</span></td>
+-                <td>{{ quote.weight_kg }} kg
++                <td>{{ quote.weight_kg | number:'1.0-3' }} kg
+                   @if (quote.length_cm) {
+-                  <br><span class="text-secondary small">{{ quote.length_cm }}×{{ quote.width_cm }}×{{ quote.height_cm }} cm</span>
++                  <br><span class="text-secondary small">{{ quote.length_cm | number:'1.0-2' }}×{{ quote.width_cm | number:'1.0-2' }}×{{ quote.height_cm | number:'1.0-2' }} cm</span>
+                   }
+                 </td>
+                 <td>{{ quote.created_at | date:'dd/MM/yyyy HH:mm':'-0600' }}</td>
+diff --git a/frontend-angular/src/app/pages/admin/admin.ts b/frontend-angular/src/app/pages/admin/admin.ts
+index e8a63dd..8f963d4 100644
+--- a/frontend-angular/src/app/pages/admin/admin.ts
++++ b/frontend-angular/src/app/pages/admin/admin.ts
+@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
+ import { finalize } from 'rxjs';
+ import { RouterLink } from '@angular/router';
+ import { HttpErrorResponse } from '@angular/common/http';
+-import { CurrencyPipe, DatePipe } from '@angular/common';
++import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+ import { FormControl, FormsModule } from '@angular/forms';
+ 
+ import {
+@@ -21,7 +21,7 @@ import {
+ @Component({
+   selector: 'app-admin',
+   standalone: true,
+-  imports: [RouterLink, FormsModule, DatePipe, CurrencyPipe],
++  imports: [RouterLink, FormsModule, DatePipe, CurrencyPipe, DecimalPipe],
+   templateUrl: './admin.html',
+   styleUrl: './admin.scss'
+ })
+diff --git a/frontend-angular/src/app/pages/quote/quote.html b/frontend-angular/src/app/pages/quote/quote.html
+index b3b2e0d..c5aacaa 100644
+--- a/frontend-angular/src/app/pages/quote/quote.html
++++ b/frontend-angular/src/app/pages/quote/quote.html
+@@ -194,8 +194,8 @@
+                   } @else {
+                   {{ option.delivery_days_min }}–{{ option.delivery_days_max }} días
+                   }
+-                  @if (isVolumetric(option)) {
+-                  · Cobra por peso volumétrico: {{ option.billable_weight_kg }} kg
++                  @if (chargedByVolume(option, result.weight_kg)) {
++                  · Se cobra por tamaño de caja: {{ option.billable_weight_kg | number:'1.0-3' }} kg (peso volumétrico)
+                   }
+                 </div>
+               </article>
+diff --git a/frontend-angular/src/app/pages/quote/quote.spec.ts b/frontend-angular/src/app/pages/quote/quote.spec.ts
+index e16931e..9597423 100644
+--- a/frontend-angular/src/app/pages/quote/quote.spec.ts
++++ b/frontend-angular/src/app/pages/quote/quote.spec.ts
+@@ -71,7 +71,7 @@ describe('Cotizador (fase 2)', () => {
+     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+     expect(text).toContain('Folio #42');
+     expect(text).toContain('31/12/2026');
+-    expect(text).toContain('peso volumétrico: 7.200 kg');
++    expect(text).toContain('Se cobra por tamaño de caja: 7.2 kg');
+     expect(text).not.toContain('Consultando');
+   });
+ 
+@@ -91,4 +91,13 @@ describe('Cotizador (fase 2)', () => {
+ 
+     expect(component.errorMessage).toBe('El código postal debe tener 5 dígitos.');
+   });
++
++  it('no menciona el volumétrico cuando gana el peso real', () => {
++    const component = TestBed.createComponent(Quote).componentInstance;
++    const option = { weight_method: 'volumetrico', billable_weight_kg: '8.000' };
++
++    expect(component.chargedByVolume(option, '8.000')).toBe(false);
++    expect(component.chargedByVolume({ ...option, billable_weight_kg: '7.200' }, '2')).toBe(true);
++    expect(component.chargedByVolume({ weight_method: 'real', billable_weight_kg: '2' }, '2')).toBe(false);
++  });
+ });
+diff --git a/frontend-angular/src/app/pages/quote/quote.ts b/frontend-angular/src/app/pages/quote/quote.ts
+index 60dad78..ec0cfe3 100644
+--- a/frontend-angular/src/app/pages/quote/quote.ts
++++ b/frontend-angular/src/app/pages/quote/quote.ts
+@@ -8,7 +8,7 @@ import {
+ } from '@angular/forms';
+ 
+ import { QuoteService, QuoteResponse } from '../../core/services/quote.service';
+-import { CurrencyPipe, DatePipe } from '@angular/common';
++import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+ 
+ import {
+   postalCodeValidator,
+@@ -28,7 +28,7 @@ type DimensionField = 'length' | 'width' | 'height';
+ @Component({
+   selector: 'app-quote',
+   standalone: true,
+-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
++  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe],
+   templateUrl: './quote.html',
+   styleUrl: './quote.scss'
+ })
+@@ -96,8 +96,13 @@ export class Quote {
+     this.quoteForm.controls[controlName].setValue(sanitized);
+   }
+ 
+-  isVolumetric(option: { weight_method?: string | null }): boolean {
+-    return option.weight_method === 'volumetrico';
++  /** Solo se menciona el volumétrico cuando de verdad aumentó el peso cobrado. */
++  chargedByVolume(
++    option: { weight_method?: string | null; billable_weight_kg?: number | string | null },
++    realWeightKg: number | string
++  ): boolean {
++    return option.weight_method === 'volumetrico'
++      && Number(option.billable_weight_kg) > Number(realWeightKg);
+   }
+ 
+   sanitizeWeight(event: Event): void {

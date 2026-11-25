@@ -212,9 +212,9 @@
                 <td>{{ lead.email }}</td>
                 <td>{{ quote.origin_postal_code }} → {{ quote.destination_postal_code }}<br>
                   <span class="text-secondary small">Zona {{ quote.zone }}</span></td>
-                <td>{{ quote.weight_kg }} kg
+                <td>{{ quote.weight_kg | number:'1.0-3' }} kg
                   @if (quote.length_cm) {
-                  <br><span class="text-secondary small">{{ quote.length_cm }}×{{ quote.width_cm }}×{{ quote.height_cm }} cm</span>
+                  <br><span class="text-secondary small">{{ quote.length_cm | number:'1.0-2' }}×{{ quote.width_cm | number:'1.0-2' }}×{{ quote.height_cm | number:'1.0-2' }} cm</span>
                   }
                 </td>
                 <td>{{ quote.created_at | date:'dd/MM/yyyy HH:mm':'-0600' }}</td>

@@ -194,8 +194,8 @@
                   } @else {
                   {{ option.delivery_days_min }}–{{ option.delivery_days_max }} días
                   }
-                  @if (isVolumetric(option)) {
-                  · Cobra por peso volumétrico: {{ option.billable_weight_kg }} kg
+                  @if (chargedByVolume(option, result.weight_kg)) {
+                  · Se cobra por tamaño de caja: {{ option.billable_weight_kg | number:'1.0-3' }} kg (peso volumétrico)
                   }
                 </div>
               </article>

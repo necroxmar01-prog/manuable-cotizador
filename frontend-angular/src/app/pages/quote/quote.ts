@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 
 import { QuoteService, QuoteResponse } from '../../core/services/quote.service';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 
 import {
   postalCodeValidator,
@@ -28,7 +28,7 @@ type DimensionField = 'length' | 'width' | 'height';
 @Component({
   selector: 'app-quote',
   standalone: true,
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, DecimalPipe],
   templateUrl: './quote.html',
   styleUrl: './quote.scss'
 })
@@ -96,8 +96,13 @@ export class Quote {
     this.quoteForm.controls[controlName].setValue(sanitized);
   }
 
-  isVolumetric(option: { weight_method?: string | null }): boolean {
-    return option.weight_method === 'volumetrico';
+  /** Solo se menciona el volumétrico cuando de verdad aumentó el peso cobrado. */
+  chargedByVolume(
+    option: { weight_method?: string | null; billable_weight_kg?: number | string | null },
+    realWeightKg: number | string
+  ): boolean {
+    return option.weight_method === 'volumetrico'
+      && Number(option.billable_weight_kg) > Number(realWeightKg);
   }
 
   sanitizeWeight(event: Event): void {
