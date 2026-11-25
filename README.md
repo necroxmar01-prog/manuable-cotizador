@@ -2,6 +2,8 @@
 
 Aplicación fullstack para cotizar envíos, registrar leads y administrar tarifas mediante un panel interno para Comercial.
 
+> **¿Primera vez?** Lee la [guía de uso](docs/GUIA_DE_USO.md): explica cada archivo de `datos/`, el cotizador, la vista interna y cómo cambiar tarifas. Los casos de prueba de fase 1 y fase 2, con sus resultados esperados, están en [pruebas manuales](docs/PRUEBAS_MANUALES.md).
+
 ## Requisitos
 
 - Git
