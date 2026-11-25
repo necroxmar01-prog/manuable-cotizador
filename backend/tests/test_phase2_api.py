@@ -196,3 +196,20 @@ def test_leads_can_be_filtered_by_email(client, db):
 
     assert body["total"] == 1
     assert body["items"][0]["email"] == "otra@cliente.mx"
+
+
+def test_simulated_date_drives_quotes_and_health(client, db, monkeypatch):
+    """FECHA_SIMULADA permite demostrar hoy el cambio del 1 de diciembre."""
+    from app.core import clock
+
+    seed_dhl(db)
+    monkeypatch.setattr(quotes_api, "now", clock.now)
+    monkeypatch.setenv("FECHA_SIMULADA", "2026-12-01T10:00:00")
+
+    body = client.post(
+        "/api/quotes", json=payload(length_cm="40", width_cm="30", height_cm="30")
+    ).json()
+
+    assert body["options"][0]["price_mxn"] == "1171.58"
+    assert body["valid_until"].startswith("2026-12-31T23:59:59")
+    assert client.get("/health").json()["fecha_simulada"].startswith("2026-12-01T10:00:00")

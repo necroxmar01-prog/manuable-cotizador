@@ -54,6 +54,7 @@
 29. **Cuarentena de precios atípicos.** Si una tarifa se aleja más de 5× de la mediana de su mismo rango de peso (con al menos 3 referencias), se marca `active=false` con su motivo y su registro de importación pasa a `quarantined`. No se corrige el importe. Afectó a 3 tarifas de fase 1 que se cotizaban en producción (ver `docs/INVESTIGACION_CUSTOMER_CARE.md`). Se aplica en cada arranque, así que también limpia bases de datos ya existentes.
 30. **Métricas para Growth.** `GET /api/metrics/quotes?days=N` (protegido) devuelve cotizaciones por día en hora de Monterrey y cuántas terminaron sin opciones. Solo cuenta cotizaciones web. La vista interna muestra el día de hoy, el acumulado de 14 días y la tabla diaria. Reemplaza los contadores de fase 1, que solo sumaban la página visible.
 31. **Errores de validación legibles.** Los 422 devuelven `detail` como texto y `errors` con el detalle técnico. Esto corrige el mensaje genérico que veía la clienta con "06600 ".
+32. **Fecha simulada para demos.** Con la variable `FECHA_SIMULADA` (ISO 8601; sin zona = hora de Monterrey) se puede mostrar hoy el comportamiento del 1 de diciembre. Afecta las cotizaciones, la vigencia y las métricas, y `/health` la expone para que no pase desapercibida. Vacía por defecto; no debe usarse en producción. Las pruebas automatizadas congelan el reloj sin usarla.
 
 ## 6. Pendientes y consideraciones futuras
 

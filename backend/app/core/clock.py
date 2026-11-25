@@ -4,6 +4,7 @@ Las vigencias de tarifas y de cotizaciones se expresan en fechas de calendario
 de Monterrey; el contenedor corre en UTC, así que nunca usamos date.today().
 """
 
+import os
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -11,8 +12,23 @@ BUSINESS_TZ = ZoneInfo("America/Monterrey")
 QUOTE_VALIDITY_DAYS = 30
 
 
+def simulated_now() -> datetime | None:
+    """Fecha fija para demos y pruebas manuales (variable FECHA_SIMULADA).
+
+    Permite mostrar hoy cómo cotizará el sistema el 1 de diciembre. Nunca
+    debe definirse en producción.
+    """
+    raw = os.getenv("FECHA_SIMULADA", "").strip()
+    if not raw:
+        return None
+    moment = datetime.fromisoformat(raw)
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=BUSINESS_TZ)
+    return moment.astimezone(BUSINESS_TZ)
+
+
 def now() -> datetime:
-    return datetime.now(BUSINESS_TZ)
+    return simulated_now() or datetime.now(BUSINESS_TZ)
 
 
 def business_date(moment: datetime | None = None) -> date:

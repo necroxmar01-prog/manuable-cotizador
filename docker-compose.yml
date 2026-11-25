@@ -21,6 +21,8 @@ services:
       DATABASE_URL: postgresql+psycopg://manuable:manuable_dev@db:5432/manuable
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-adminlocalonly}
+      # Solo para demos: fija "hoy" (ej. 2026-12-01T10:00:00). Vacío = fecha real.
+      FECHA_SIMULADA: ${FECHA_SIMULADA:-}
     ports:
       - "8000:8000"
     volumes:

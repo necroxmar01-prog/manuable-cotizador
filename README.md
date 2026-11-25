@@ -85,6 +85,16 @@ Un tarifario nuevo de una paquetería reemplaza completo al anterior desde su `v
 
 El resultado de cada carga (aceptadas, corregidas, rechazadas y en cuarentena, con su motivo) queda en `import_batches` / `import_records`.
 
+### Simular una fecha (solo demos)
+
+Para ver hoy cómo cotizará el sistema en otra fecha (p. ej. el 1 de diciembre, cuando entran las tarifas DHL v2 y el volumétrico):
+
+```bash
+FECHA_SIMULADA=2026-12-01T10:00:00 docker compose up -d backend    # PowerShell: $env:FECHA_SIMULADA="2026-12-01T10:00:00"
+```
+
+`GET /health` muestra la fecha simulada cuando está activa. No se debe definir en producción.
+
 ## Importador de tarifas
 
 El importador normaliza nombres de paqueterías, zonas, unidades, precios, días de entrega y fechas. Rechaza filas incompletas, ambiguas o inconsistentes sin inventar valores.
@@ -115,6 +125,8 @@ La validación comprueba estructura y consistencia de los datos, pero no certifi
 - Cotizaciones con folio y precio garantizado 30 días; cotizaciones telefónicas registradas.
 - Métricas de Growth (`GET /api/metrics/quotes`) en la vista interna.
 - Investigación de Customer Care: [`docs/INVESTIGACION_CUSTOMER_CARE.md`](docs/INVESTIGACION_CUSTOMER_CARE.md).
+- Datos y escenarios para probar a mano: [`docs/PRUEBAS_MANUALES.md`](docs/PRUEBAS_MANUALES.md).
+- Resumen técnico de la solución (arquitectura, decisiones y demo): [`docs/EXPOSICION_FASE_2.md`](docs/EXPOSICION_FASE_2.md).
 - Detalle de decisiones en `DECISIONES.md` (sección 5) y mensaje al negocio en `ENTREGA_FASE_2.md`.
 
 ## Estado de fase 1

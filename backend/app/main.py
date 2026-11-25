@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.leads import router as leads_router
+from app.core.clock import simulated_now
 from app.api.metrics import router as metrics_router
 from app.api.quotes import router as quotes_router
 
@@ -49,6 +50,9 @@ def jsonable_errors(errors: list[dict]) -> list[dict]:
 
 @app.get("/health", tags=["Health"])
 def health_check() -> dict[str, str]:
+    simulated = simulated_now()
+    if simulated is not None:
+        return {"status": "ok", "fecha_simulada": simulated.isoformat()}
     return {"status": "ok"}
 
 

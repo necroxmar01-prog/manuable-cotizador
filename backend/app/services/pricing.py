@@ -148,9 +148,10 @@ def price_package(
 
     notices = []
     if skipped_for_dimensions:
-        names = ", ".join(sorted(skipped_for_dimensions))
+        names = " y ".join(sorted(skipped_for_dimensions))
+        verb = "cobran" if len(skipped_for_dimensions) > 1 else "cobra"
         notices.append(
-            f"{names} cobra por peso volumétrico: indica largo, ancho y alto para ver su precio."
+            f"{names} {verb} por peso volumétrico: indica largo, ancho y alto para ver su precio."
         )
 
     options.sort(key=lambda option: Decimal(option.tariff.price_mxn))
