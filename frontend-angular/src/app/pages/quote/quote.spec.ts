@@ -35,9 +35,11 @@ describe('Cotizador (fase 2)', () => {
     expect(root.textContent).toContain('no el nombre de la ciudad');
   });
 
-  it('envía medidas y muestra folio, vigencia y avisos', () => {
+  it('envía medidas y muestra folio, vigencia y avisos', async () => {
     const fixture = TestBed.createComponent(Quote);
     const component = fixture.componentInstance;
+    fixture.autoDetectChanges();
+    await fixture.whenStable();
     component.quoteForm.setValue({
       originPostalCode: '06600',
       destinationPostalCode: '64000',
@@ -48,7 +50,10 @@ describe('Cotizador (fase 2)', () => {
       email: 'ana@tienda.mx'
     });
 
-    component.onSubmit();
+    (fixture.nativeElement as HTMLElement).querySelector('form')!
+      .dispatchEvent(new Event('submit'));
+    await fixture.whenStable();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Consultando');
     const request = http.expectOne('http://localhost:8000/api/quotes');
     expect(request.request.body).toMatchObject({ length_cm: 40, width_cm: 30, height_cm: 30 });
 
@@ -60,12 +65,14 @@ describe('Cotizador (fase 2)', () => {
         delivery_days_min: 3, delivery_days_max: 3, billable_weight_kg: '7.200', weight_method: 'volumetrico' }],
       notices: []
     });
-    fixture.detectChanges();
+    // Sin detectChanges manual: la app es zoneless y debe refrescarse sola.
+    await fixture.whenStable();
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('Folio #42');
     expect(text).toContain('31/12/2026');
     expect(text).toContain('peso volumétrico: 7.200 kg');
+    expect(text).not.toContain('Consultando');
   });
 
   it('muestra el mensaje del backend en errores de validación', () => {

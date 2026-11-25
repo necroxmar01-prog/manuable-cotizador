@@ -4,6 +4,12 @@ Reporte de Mariana, Customer Care:
 
 > "el cotizador se traba a veces cuando pones el CP con espacios o cuando escribes la ciudad. una clienta nos dijo que puso "06600 " y no le salió nada. también varios nos preguntan por qué les sale una paquetería y a su vecino otra con el mismo CP."
 
+## 0. "Se traba". Era un bug: la pantalla se quedaba en "Consultando...".
+
+El frontend usa Angular 21 sin `zone.js` (modo *zoneless*). En ese modo, una respuesta HTTP no actualiza la pantalla por sí sola. El backend sí respondía `201` y guardaba el lead, pero el botón seguía en "Consultando..." y no aparecían los resultados ni los errores hasta que la persona tocaba otra cosa en la página. Pasaba igual en la vista interna. Venía desde v1.
+
+**Corrección:** después de cada respuesta HTTP se avisa a Angular (`ChangeDetectorRef.markForCheck()`), en el cotizador y en la vista interna. Hay una prueba que reproduce el problema sin forzar el refresco a mano.
+
 ## 1. "Se traba cuando escribes la ciudad". Era un problema de experiencia de uso.
 
 El campo de CP borraba en silencio todo lo que no fuera dígito. Si alguien escribía "Monterrey", las letras desaparecían y el campo se veía congelado, sin ningún mensaje que lo explicara.

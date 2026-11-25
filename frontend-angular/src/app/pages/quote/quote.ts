@@ -1,4 +1,5 @@
-﻿import { Component, inject } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { finalize } from 'rxjs';
 import {
   FormControl,
   FormGroup,
@@ -33,6 +34,9 @@ type DimensionField = 'length' | 'width' | 'height';
 })
 export class Quote {
   private readonly quoteService = inject(QuoteService);
+  // La app es zoneless (Angular 21 sin zone.js): las respuestas HTTP no
+  // disparan detección de cambios solas, hay que avisarle a Angular.
+  private readonly cdr = inject(ChangeDetectorRef);
 
   submitted = false;
   isLoading = false;
@@ -135,7 +139,7 @@ export class Quote {
       width_cm: Number(formValue.width),
       height_cm: Number(formValue.height),
       email: formValue.email ?? ''
-    }).subscribe({
+    }).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (response) => {
         this.quoteResult = response;
         this.statusMessage = 'Tu cotización se generó correctamente.';

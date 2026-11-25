@@ -55,6 +55,7 @@
 30. **Métricas para Growth.** `GET /api/metrics/quotes?days=N` (protegido) devuelve cotizaciones por día en hora de Monterrey y cuántas terminaron sin opciones. Solo cuenta cotizaciones web. La vista interna muestra el día de hoy, el acumulado de 14 días y la tabla diaria. Reemplaza los contadores de fase 1, que solo sumaban la página visible.
 31. **Errores de validación legibles.** Los 422 devuelven `detail` como texto y `errors` con el detalle técnico. Esto corrige el mensaje genérico que veía la clienta con "06600 ".
 32. **Fecha simulada para demos.** Con la variable `FECHA_SIMULADA` (ISO 8601; sin zona = hora de Monterrey) se puede mostrar hoy el comportamiento del 1 de diciembre. Afecta las cotizaciones, la vigencia y las métricas, y `/health` la expone para que no pase desapercibida. Vacía por defecto; no debe usarse en producción. Las pruebas automatizadas congelan el reloj sin usarla.
+33. **Frontend zoneless.** Angular 21 corre sin `zone.js`; cada respuesta HTTP llama a `markForCheck()`. Sin eso, la pantalla se quedaba en "Consultando..." (bug presente desde v1).
 
 ## 6. Pendientes y consideraciones futuras
 

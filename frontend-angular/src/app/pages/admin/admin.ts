@@ -1,5 +1,6 @@
 
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
+import { finalize } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CurrencyPipe, DatePipe } from '@angular/common';
@@ -26,6 +27,9 @@ import {
 })
 export class Admin {
   private readonly adminService = inject(AdminService);
+  // La app es zoneless (Angular 21 sin zone.js): las respuestas HTTP no
+  // disparan detección de cambios solas, hay que avisarle a Angular.
+  private readonly cdr = inject(ChangeDetectorRef);
 
   username = '';
   password = '';
@@ -72,7 +76,7 @@ export class Admin {
       this.password,
       this.page,
       this.pageSize
-    ).subscribe({
+    ).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (response: LeadListResponse) => {
         this.isAuthenticated = true;
         this.updateDashboard(response);
@@ -108,7 +112,7 @@ export class Admin {
       this.page,
       this.pageSize,
       this.emailFilter
-    ).subscribe({
+    ).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (response: LeadListResponse) => {
         this.updateDashboard(response);
         this.isLoading = false;
@@ -128,7 +132,7 @@ export class Admin {
 
   loadMetrics(): void {
     this.metricsError = '';
-    this.adminService.getQuoteMetrics(this.username.trim(), this.password).subscribe({
+    this.adminService.getQuoteMetrics(this.username.trim(), this.password).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (metrics) => (this.metrics = metrics),
       error: () => (this.metricsError = 'No fue posible cargar las métricas.')
     });
