@@ -2,7 +2,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormControl, FormsModule } from '@angular/forms';
 
 import {
@@ -13,13 +13,14 @@ import {
 import {
   AdminService,
   Lead,
-  LeadListResponse
+  LeadListResponse,
+  QuoteMetrics
 } from '../../core/services/admin.service';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, CurrencyPipe],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
 })
@@ -31,8 +32,9 @@ export class Admin {
 
   leads: Lead[] = [];
   totalLeads = 0;
-  totalQuotes = 0;
-  quotesWithoutOptions = 0;
+  metrics: QuoteMetrics | null = null;
+  metricsError = '';
+  emailFilter = '';
 
   page = 1;
   pageSize = 20;
@@ -74,6 +76,7 @@ export class Admin {
       next: (response: LeadListResponse) => {
         this.isAuthenticated = true;
         this.updateDashboard(response);
+        this.loadMetrics();
         this.isLoading = false;
       },
       error: (error: HttpErrorResponse) => {
@@ -103,7 +106,8 @@ export class Admin {
       this.username.trim(),
       this.password,
       this.page,
-      this.pageSize
+      this.pageSize,
+      this.emailFilter
     ).subscribe({
       next: (response: LeadListResponse) => {
         this.updateDashboard(response);
@@ -116,13 +120,27 @@ export class Admin {
     });
   }
 
+  search(): void {
+    this.page = 1;
+    this.totalPages = Math.max(this.totalPages, 1);
+    this.loadPage(1);
+  }
+
+  loadMetrics(): void {
+    this.metricsError = '';
+    this.adminService.getQuoteMetrics(this.username.trim(), this.password).subscribe({
+      next: (metrics) => (this.metrics = metrics),
+      error: () => (this.metricsError = 'No fue posible cargar las métricas.')
+    });
+  }
+
   logout(): void {
     this.username = '';
     this.password = '';
     this.leads = [];
     this.totalLeads = 0;
-    this.totalQuotes = 0;
-    this.quotesWithoutOptions = 0;
+    this.metrics = null;
+    this.emailFilter = '';
     this.totalPages = 0;
     this.page = 1;
     this.isAuthenticated = false;
@@ -133,17 +151,10 @@ export class Admin {
     this.leads = response.items;
     this.totalLeads = response.total;
     this.totalPages = response.pages;
+  }
 
-    this.totalQuotes = this.leads.reduce(
-      (total, lead) => total + lead.quotes.length,
-      0
-    );
-
-    this.quotesWithoutOptions = this.leads.reduce(
-      (total, lead) =>
-        total + lead.quotes.filter(quote => quote.options.length === 0).length,
-      0
-    );
+  get todayMetrics() {
+    return this.metrics?.daily[0] ?? null;
   }
 
   sanitizeUsername(value: string): void {

@@ -7,7 +7,7 @@ import {
 } from '@angular/forms';
 
 import { QuoteService, QuoteResponse } from '../../core/services/quote.service';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 
 import {
   postalCodeValidator,
@@ -15,13 +15,19 @@ import {
   emailFormatValidator,
   sanitizeEmail as sanitizeEmailValue,
   sanitizePostalCode as sanitizePostalCodeValue,
-  sanitizeWeight as sanitizeWeightValue
+  sanitizeWeight as sanitizeWeightValue,
+  sanitizeDimension as sanitizeDimensionValue,
+  dimensionValidator,
+  containsLetters
 } from '../../shared/input-rules';
+
+type PostalField = 'originPostalCode' | 'destinationPostalCode';
+type DimensionField = 'length' | 'width' | 'height';
 
 @Component({
   selector: 'app-quote',
   standalone: true,
-  imports: [ReactiveFormsModule, CurrencyPipe],
+  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe],
   templateUrl: './quote.html',
   styleUrl: './quote.scss'
 })
@@ -33,6 +39,17 @@ export class Quote {
   statusMessage = '';
   errorMessage = '';
   quoteResult: QuoteResponse | null = null;
+  /** Aviso cuando escriben letras (p. ej. la ciudad) en un campo de CP. */
+  readonly dimensionFields: { name: DimensionField; label: string }[] = [
+    { name: 'length', label: 'Largo' },
+    { name: 'width', label: 'Ancho' },
+    { name: 'height', label: 'Alto' }
+  ];
+
+  postalHints: Record<PostalField, boolean> = {
+    originPostalCode: false,
+    destinationPostalCode: false
+  };
 
   quoteForm = new FormGroup({
     originPostalCode: new FormControl('', [
@@ -47,6 +64,9 @@ export class Quote {
       Validators.required,
       positiveDecimalValidator
     ]),
+    length: new FormControl<string | null>('', [Validators.required, dimensionValidator]),
+    width: new FormControl<string | null>('', [Validators.required, dimensionValidator]),
+    height: new FormControl<string | null>('', [Validators.required, dimensionValidator]),
     email: new FormControl('', [
       Validators.required,
       Validators.email,
@@ -55,15 +75,25 @@ export class Quote {
     ])
   });
 
-  sanitizePostalCode(
-    controlName: 'originPostalCode' | 'destinationPostalCode',
-    event: Event
-  ): void {
+  sanitizePostalCode(controlName: PostalField, event: Event): void {
     const input = event.target as HTMLInputElement;
     const sanitized = sanitizePostalCodeValue(input.value);
 
+    this.postalHints[controlName] = containsLetters(input.value);
     input.value = sanitized;
     this.quoteForm.controls[controlName].setValue(sanitized);
+  }
+
+  sanitizeDimension(controlName: DimensionField, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const sanitized = sanitizeDimensionValue(input.value);
+
+    input.value = sanitized;
+    this.quoteForm.controls[controlName].setValue(sanitized);
+  }
+
+  isVolumetric(option: { weight_method?: string | null }): boolean {
+    return option.weight_method === 'volumetrico';
   }
 
   sanitizeWeight(event: Event): void {
@@ -101,6 +131,9 @@ export class Quote {
       origin_postal_code: formValue.originPostalCode ?? '',
       destination_postal_code: formValue.destinationPostalCode ?? '',
       weight_kg: Number(formValue.weight),
+      length_cm: Number(formValue.length),
+      width_cm: Number(formValue.width),
+      height_cm: Number(formValue.height),
       email: formValue.email ?? ''
     }).subscribe({
       next: (response) => {
@@ -111,7 +144,9 @@ export class Quote {
       error: (error) => {
         const detail = error.error?.detail;
 
-        this.errorMessage = typeof detail === 'string'
+        this.errorMessage = error.status === 0
+          ? 'No pudimos conectar con el cotizador. Revisa tu conexión e inténtalo de nuevo.'
+          : typeof detail === 'string'
           ? detail
           : 'No fue posible generar la cotización. Verifica tus datos e inténtalo nuevamente.';
 
@@ -130,6 +165,18 @@ export class Quote {
 
   get weight() {
     return this.quoteForm.controls.weight;
+  }
+
+  get length() {
+    return this.quoteForm.controls.length;
+  }
+
+  get width() {
+    return this.quoteForm.controls.width;
+  }
+
+  get height() {
+    return this.quoteForm.controls.height;
   }
 
   get email() {

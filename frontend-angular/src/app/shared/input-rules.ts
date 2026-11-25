@@ -101,3 +101,42 @@ export function alphanumericAtValidator(
     ? null
     : { invalidCharacters: true };
 }
+
+/**
+ * Customer Care: la gente pega "06600 " o escribe la ciudad. El campo solo
+ * conserva dígitos; esto permite avisar en lugar de borrar letras en silencio.
+ */
+export function containsLetters(value: string): boolean {
+  return /\p{L}/u.test(value);
+}
+
+export function sanitizeDimension(value: string): string {
+  if (value.includes('-')) return '';
+
+  let sanitized = value.replace(/[^\d.]/g, '');
+  const [integer, ...decimals] = sanitized.split('.');
+
+  if (decimals.length > 0) {
+    sanitized = integer + '.' + decimals.join('').slice(0, 2);
+  }
+
+  if (sanitized !== '' && Number(sanitized) > 300) return sanitized.slice(0, -1);
+
+  return sanitized;
+}
+
+export function dimensionValidator(
+  control: AbstractControl
+): ValidationErrors | null {
+  const value = control.value;
+
+  if (value === null || value === '') return null;
+
+  const text = String(value);
+
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return { invalidDimension: true };
+
+  const number = Number(text);
+
+  return number > 0 && number <= 300 ? null : { invalidDimension: true };
+}

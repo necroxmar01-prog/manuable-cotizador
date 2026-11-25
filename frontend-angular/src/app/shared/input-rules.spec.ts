@@ -8,7 +8,10 @@ import {
   sanitizePostalCode,
   sanitizeWeight,
   alphanumericAtValidator,
-  sanitizeAlphanumericAt
+  sanitizeAlphanumericAt,
+  containsLetters,
+  sanitizeDimension,
+  dimensionValidator
 } from './input-rules';
 
 describe('Reglas reutilizables de entradas', () => {
@@ -123,5 +126,30 @@ describe('Reglas reutilizables de entradas', () => {
         ).not.toBeNull();
       });
     });
+  });
+});
+
+describe('Reglas de fase 2', () => {
+  it('quita espacios pegados alrededor del código postal', () => {
+    expect(sanitizePostalCode(' 06600 ')).toBe('06600');
+    expect(sanitizePostalCode('06 600')).toBe('06600');
+  });
+
+  it('detecta cuando escriben una ciudad en lugar del código postal', () => {
+    expect(containsLetters('Monterrey')).toBe(true);
+    expect(containsLetters('Ciudad de México')).toBe(true);
+    expect(containsLetters('06600 ')).toBe(false);
+  });
+
+  it('limita medidas a dos decimales y 300 cm', () => {
+    expect(sanitizeDimension('40.555')).toBe('40.55');
+    expect(sanitizeDimension('3001')).toBe('300');
+    expect(sanitizeDimension('-5')).toBe('');
+  });
+
+  it('valida medidas positivas', () => {
+    expect(dimensionValidator(new FormControl('40'))).toBeNull();
+    expect(dimensionValidator(new FormControl('0'))).toEqual({ invalidDimension: true });
+    expect(dimensionValidator(new FormControl('301'))).toEqual({ invalidDimension: true });
   });
 });
