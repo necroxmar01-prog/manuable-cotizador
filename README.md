@@ -17,7 +17,7 @@ Desde la raíz del repositorio:
 docker compose up --build
 ```
 
-En el primer arranque, el backend espera a que PostgreSQL esté saludable, aplica las migraciones Alembic e importa `paqueterias.csv` y `tarifas.csv` si la base todavía no tiene una importación inicial.
+En cada arranque, el backend espera a que PostgreSQL esté saludable, aplica las migraciones Alembic y sincroniza la carpeta `datos/` (ver *Actualizar tarifas*). Cada archivo se importa una sola vez por contenido.
 
 Servicios:
 
@@ -63,7 +63,27 @@ Se puede cambiar mediante las variables de entorno `ADMIN_USERNAME` y `ADMIN_PAS
 
 ## Datos de entrada
 
-Los archivos CSV originales se conservan en `datos/`. La fase 1 procesa `paqueterias.csv` y `tarifas.csv`. Los archivos `tarifas_dhl_v2.csv` y `cotizaciones_historicas.csv` se reservan para la fase 2.
+Los CSV originales se conservan sin modificar en `datos/`:
+
+| Archivo | Contenido |
+|---|---|
+| `paqueterias.csv` | Catálogo de paqueterías (se actualiza en cada arranque). |
+| `tarifas*.csv` | Tarifarios. Cada uno con su `vigencia_desde`; p. ej. `tarifas_dhl_v2.csv` aplica desde el 2026-12-01. |
+| `reglas_peso*.csv` | Cómo cobra cada paquetería: peso `real` o `volumetrico` (con divisor), desde qué fecha. |
+| `cotizaciones_historicas*.csv` | Cotizaciones dadas por teléfono; se registran con su precio y vigencia de 30 días. |
+
+## Actualizar tarifas o reglas de peso (sin tocar código)
+
+1. Deja el CSV nuevo en `datos/`, con un nombre que empiece por `tarifas` o `reglas_peso` (p. ej. `tarifas_estafeta_2027.csv`).
+2. Reinicia el backend (`docker compose restart backend`) o ejecuta:
+
+   ```bash
+   docker compose run --rm backend python -m app.cli sync-data
+   ```
+
+Un tarifario nuevo de una paquetería reemplaza completo al anterior desde su `vigencia_desde` (hora de Monterrey). Las cotizaciones ya emitidas conservan su precio 30 días. Ejemplo para cuando Estafeta pase a volumétrico: agregar a `datos/reglas_peso.csv` la línea `Estafeta,volumetrico,5000,AAAA-MM-DD`.
+
+El resultado de cada carga (aceptadas, corregidas, rechazadas y en cuarentena, con su motivo) queda en `import_batches` / `import_records`.
 
 ## Importador de tarifas
 
@@ -80,13 +100,22 @@ docker compose down -v
 docker compose up --build
 ```
 
-Con los CSV recibidos, la importación inicial de `tarifas.csv` produjo:
+Con los CSV recibidos, la importación produce:
 
-- 1 fila aceptada sin cambios.
-- 32 filas corregidas mediante normalización.
-- 75 filas rechazadas: 73 por datos inválidos o incompletos y 2 duplicadas después de normalizar.
+- `tarifas.csv`: 1 aceptada sin cambios, 29 corregidas mediante normalización, 75 rechazadas (73 por datos inválidos o incompletos y 2 duplicadas) y 3 en cuarentena por precio atípico (fase 2).
+- `tarifas_dhl_v2.csv`: 24 aceptadas.
+- `reglas_peso.csv`: 6 reglas.
+- `cotizaciones_historicas.csv`: 40 cotizaciones telefónicas registradas.
 
 La validación comprueba estructura y consistencia de los datos, pero no certifica que los precios de origen sean comercialmente correctos. Las tarifas se conservan sin inventar ni ajustar importes.
+
+## Fase 2
+
+- Tarifas DHL v2 y peso volumétrico (DHL y FedEx) desde el 2026-12-01, configurables por datos.
+- Cotizaciones con folio y precio garantizado 30 días; cotizaciones telefónicas registradas.
+- Métricas de Growth (`GET /api/metrics/quotes`) en la vista interna.
+- Investigación de Customer Care: [`docs/INVESTIGACION_CUSTOMER_CARE.md`](docs/INVESTIGACION_CUSTOMER_CARE.md).
+- Detalle de decisiones en `DECISIONES.md` (sección 5) y mensaje al negocio en `ENTREGA_FASE_2.md`.
 
 ## Estado de fase 1
 
