@@ -3,6 +3,7 @@
 import csv
 import hashlib
 import re
+import statistics
 import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -188,6 +189,10 @@ def normalize_row(row: dict[str, str]) -> NormalizedTariff:
     min_raw = row.get("peso_min", row.get("peso_min_kg", ""))
     max_raw = row.get("peso_max", row.get("peso_max_kg", ""))
     unit = row.get("unidad", "")
+    if "unidad" not in row and "peso_min_kg" in row:
+        # Formato v2 (p. ej. tarifas_dhl_v2.csv): la unidad viene en el
+        # nombre de la columna, no en una columna aparte.
+        unit = "kg"
 
     try:
         minimum, items = parse_weight(min_raw, unit, max_raw)
@@ -300,14 +305,23 @@ def close_previous_tariff_versions(
         previous.valid_to = last_valid_day
 
 
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def import_tariffs(session: Session, path: Path) -> dict[str, int]:
-    counts = {"accepted": 0, "corrected": 0, "rejected": 0}
+    counts = {"accepted": 0, "corrected": 0, "rejected": 0, "quarantined": 0}
     seen_in_file: set[str] = set()
 
     with path.open(encoding="utf-8-sig", newline="") as file:
         rows = list(csv.DictReader(file))
 
-    batch = ImportBatch(source_file=path.name, total_rows=len(rows))
+    batch = ImportBatch(
+        source_file=path.name,
+        kind="tariffs",
+        file_sha256=file_sha256(path),
+        total_rows=len(rows),
+    )
     session.add(batch)
     session.flush()
 
@@ -391,9 +405,73 @@ def import_tariffs(session: Session, path: Path) -> dict[str, int]:
             )
         )
 
+    session.flush()
+    quarantine_price_outliers(session)
+    statuses = session.scalars(
+        select(ImportRecord.status).where(ImportRecord.batch_id == batch.id)
+    ).all()
+    for status_name in counts:
+        counts[status_name] = sum(1 for value in statuses if value == status_name)
+
     batch.accepted_rows = counts["accepted"]
     batch.corrected_rows = counts["corrected"]
     batch.rejected_rows = counts["rejected"]
+    batch.quarantined_rows = counts["quarantined"]
 
     session.flush()
     return counts
+
+
+# Un precio que se aleja más de 5x de la mediana de su mismo rango de peso
+# (todas las paqueterías y zonas) casi siempre es un error de captura: en
+# tarifas.csv aparecen 217672.00 donde las cotizaciones históricas muestran
+# 2176.72, o 42237.00 donde muestran 422.37. No corregimos el importe (no
+# inventamos tarifas); lo dejamos fuera de cotización hasta que Comercial lo
+# confirme.
+OUTLIER_FACTOR = Decimal("5")
+OUTLIER_MIN_REFERENCES = 3
+
+
+def quarantine_price_outliers(session: Session) -> list[ImportRecord]:
+    """Pone en cuarentena tarifas activas con precio atípico. Idempotente."""
+
+    active = session.scalars(select(Tariff).where(Tariff.active.is_(True))).all()
+    by_range: dict[tuple[Decimal, Decimal], list[Tariff]] = {}
+    for tariff in active:
+        key = (Decimal(tariff.weight_min_kg), Decimal(tariff.weight_max_kg))
+        by_range.setdefault(key, []).append(tariff)
+
+    updated_records: list[ImportRecord] = []
+    for tariffs in by_range.values():
+        for tariff in tariffs:
+            references = [Decimal(t.price_mxn) for t in tariffs if t.id != tariff.id]
+            if len(references) < OUTLIER_MIN_REFERENCES:
+                continue
+            median = Decimal(str(statistics.median(references)))
+            price = Decimal(tariff.price_mxn)
+            if price <= median * OUTLIER_FACTOR and price * OUTLIER_FACTOR >= median:
+                continue
+
+            note = (
+                f"Precio atípico: {price} MXN frente a una mediana de {median:.2f} MXN "
+                f"para {tariff.weight_min_kg}-{tariff.weight_max_kg} kg. "
+                "En cuarentena hasta que Comercial lo confirme."
+            )
+            tariff.active = False
+            tariff.review_note = note
+            record = session.scalar(select(ImportRecord).where(ImportRecord.tariff_id == tariff.id))
+            if record is not None:
+                previous_status = record.status
+                record.status = "quarantined"
+                record.messages = [*(record.messages or []), note]
+                batch = session.get(ImportBatch, record.batch_id)
+                if batch is not None:
+                    batch.quarantined_rows = (batch.quarantined_rows or 0) + 1
+                    if previous_status == "accepted":
+                        batch.accepted_rows = max(0, (batch.accepted_rows or 0) - 1)
+                    elif previous_status == "corrected":
+                        batch.corrected_rows = max(0, (batch.corrected_rows or 0) - 1)
+                updated_records.append(record)
+
+    session.flush()
+    return updated_records

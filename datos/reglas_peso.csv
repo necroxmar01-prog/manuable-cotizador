@@ -1,0 +1,7 @@
+paqueteria,metodo,divisor_volumetrico,vigencia_desde
+DHL,real,,2026-01-01
+Estafeta,real,,2026-01-01
+FedEx,real,,2026-01-01
+Redpack,real,,2026-01-01
+DHL,volumetrico,5000,2026-12-01
+FedEx,volumetrico,5000,2026-12-01

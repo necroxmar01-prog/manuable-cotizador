@@ -222,22 +222,42 @@ def test_normalizes_postal_codes_with_surrounding_spaces(
     assert quote.destination_postal_code == "64000"
 
 
-def test_rejects_postal_codes_with_internal_spaces(client, monkeypatch):
-    def postal_service_must_not_be_called(postal_code: str):
-        pytest.fail("No debería consultar el servicio postal.")
-
-    monkeypatch.setattr(
-        quotes_api,
-        "get_postal_code_coordinates",
-        postal_service_must_not_be_called,
-    )
+@pytest.mark.parametrize("raw", ["06 600", "\t06600\n", "\u00a006600"])
+def test_accepts_postal_codes_with_any_whitespace(client, db_session, monkeypatch, raw):
+    """Customer Care: "06600 " y variantes pegadas no deben fallar."""
+    add_tariff(db_session)
+    mock_postal_coordinates(monkeypatch)
 
     payload = quote_payload()
-    payload["origin_postal_code"] = "06 600"
+    payload["origin_postal_code"] = raw
 
     response = client.post("/api/quotes", json=payload)
 
+    assert response.status_code == 201
+    assert response.json()["origin_postal_code"] == "06600"
+
+
+@pytest.mark.parametrize(
+    ("raw", "fragment"),
+    [
+        ("Monterrey", "no el nombre de la ciudad"),
+        ("6600", "Si empieza con 0"),
+        ("123456", "cinco dígitos"),
+    ],
+)
+def test_explains_invalid_postal_codes_in_plain_language(client, monkeypatch, raw, fragment):
+    def postal_service_must_not_be_called(postal_code: str):
+        pytest.fail("No debería consultar el servicio postal.")
+
+    monkeypatch.setattr(quotes_api, "get_postal_code_coordinates", postal_service_must_not_be_called)
+
+    payload = quote_payload()
+    payload["destination_postal_code"] = raw
+    response = client.post("/api/quotes", json=payload)
+
     assert response.status_code == 422
+    assert isinstance(response.json()["detail"], str)
+    assert fragment in response.json()["detail"]
 
 
 def test_preserves_leading_zeros_after_postal_code_normalization(

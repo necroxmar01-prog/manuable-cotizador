@@ -24,7 +24,7 @@ def test_returns_coordinates(monkeypatch):
 
     def fake_urlopen(url, timeout):
         assert url.endswith("/mx/06600")
-        assert timeout == 5
+        assert timeout == 4
         return BytesIO(json.dumps(response_data).encode("utf-8"))
 
     monkeypatch.setattr(
@@ -39,7 +39,7 @@ def test_returns_coordinates(monkeypatch):
 
 @pytest.mark.parametrize(
     "postal_code",
-    ["6600", "123456", "ABCDE", "", "06 600", None],
+    ["6600", "123456", "ABCDE", "", "06-600", None],
 )
 def test_rejects_invalid_postal_codes(postal_code):
     with pytest.raises(ValueError):

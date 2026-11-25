@@ -11,11 +11,14 @@ class ImportBatch(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     source_file: Mapped[str] = mapped_column(String(120))
+    kind: Mapped[str] = mapped_column(String(30), default="tariffs", server_default="tariffs")
+    file_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     total_rows: Mapped[int] = mapped_column(Integer, default=0)
     accepted_rows: Mapped[int] = mapped_column(Integer, default=0)
     corrected_rows: Mapped[int] = mapped_column(Integer, default=0)
     rejected_rows: Mapped[int] = mapped_column(Integer, default=0)
+    quarantined_rows: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     records = relationship("ImportRecord", back_populates="batch", cascade="all, delete-orphan")
 
@@ -26,7 +29,7 @@ class ImportRecord(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     batch_id: Mapped[int] = mapped_column(ForeignKey("import_batches.id", ondelete="CASCADE"), index=True)
     row_number: Mapped[int] = mapped_column(Integer)
-    status: Mapped[str] = mapped_column(String(20))  # accepted, corrected, rejected
+    status: Mapped[str] = mapped_column(String(20))  # accepted, corrected, rejected, quarantined
     raw_data: Mapped[dict] = mapped_column(JSON)
     messages: Mapped[list] = mapped_column(JSON, default=list)
     tariff_id: Mapped[int | None] = mapped_column(ForeignKey("tariffs.id"), nullable=True)

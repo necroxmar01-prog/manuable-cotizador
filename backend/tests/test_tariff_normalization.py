@@ -109,7 +109,7 @@ def test_importer_persists_batch_and_marks_normalized_duplicates(tmp_path):
         import_carriers(session, carriers_file)
         report = import_tariffs(session, tariffs_file)
         session.commit()
-        assert report == {"accepted": 0, "corrected": 1, "rejected": 1}
+        assert report == {"accepted": 0, "corrected": 1, "rejected": 1, "quarantined": 0}
         batch = session.scalar(select(ImportBatch))
         assert batch.total_rows == 2
         assert batch.rejected_rows == 1

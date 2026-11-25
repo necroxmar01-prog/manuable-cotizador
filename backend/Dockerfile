@@ -13,4 +13,4 @@ COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && python -m app.cli seed-if-empty && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m app.cli sync-data && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

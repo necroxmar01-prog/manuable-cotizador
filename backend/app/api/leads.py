@@ -21,19 +21,21 @@ router = APIRouter(
 def list_leads(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
+    email: str | None = Query(default=None, max_length=254, description="Filtra por correo (contiene)"),
     db: Session = Depends(get_db),
 ) -> LeadListResponse:
     """Devuelve los leads y sus cotizaciones de forma paginada."""
 
-    total = db.scalar(
-        select(func.count()).select_from(Lead)
-    ) or 0
+    filters = []
+    if email and email.strip():
+        filters.append(Lead.email.ilike(f"%{email.strip().lower()}%"))
+
+    total = db.scalar(select(func.count()).select_from(Lead).where(*filters)) or 0
 
     leads = db.scalars(
         select(Lead)
-        .options(
-            selectinload(Lead.quotes).selectinload(Quote.options)
-        )
+        .where(*filters)
+        .options(selectinload(Lead.quotes).selectinload(Quote.options))
         .order_by(Lead.created_at.desc(), Lead.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)

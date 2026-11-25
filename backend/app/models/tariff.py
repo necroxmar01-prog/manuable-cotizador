@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -26,5 +26,8 @@ class Tariff(Base):
     source_file: Mapped[str] = mapped_column(String(120))
     source_row: Mapped[int] = mapped_column(Integer)
     fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    # False = en cuarentena: se cargó pero no se cotiza hasta que Comercial lo confirme.
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     carrier = relationship("Carrier", back_populates="tariffs")

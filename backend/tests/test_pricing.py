@@ -151,9 +151,9 @@ def test_orders_tariffs_by_price_ascending(db_session):
 
 @pytest.mark.parametrize(
     "weight",
-    ["1.000", "10.000"],
+    ["1.001", "10.000"],
 )
-def test_includes_exact_weight_range_boundaries(db_session, weight):
+def test_range_excludes_lower_bound_and_includes_upper_bound(db_session, weight):
     carrier = add_carrier(db_session)
     expected = add_tariff(db_session, carrier)
 
@@ -170,7 +170,7 @@ def test_includes_exact_weight_range_boundaries(db_session, weight):
 
 @pytest.mark.parametrize(
     "weight",
-    ["0.999", "10.001"],
+    ["0.999", "1.000", "10.001"],
 )
 def test_excludes_weights_outside_tariff_range(db_session, weight):
     carrier = add_carrier(db_session)
