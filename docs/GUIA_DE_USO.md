@@ -24,7 +24,7 @@ Los casos de prueba con resultados esperados están en [`PRUEBAS_MANUALES.md`](P
 
 ## 2. Requisitos y arranque
 
-Solo necesitas **Git** y **Docker** (con Docker Compose). No hace falta instalar Python, Node ni PostgreSQL.
+Solo necesitas **Git** y **Docker** (con Docker Compose). No hace falta instalar Python, Node ni PostgreSQL. Si no los tienes, sigue el [tutorial de instalación](../INSTALACION.md).
 
 ```bash
 git clone https://github.com/necroxmar01-prog/manuable-cotizador.git
@@ -334,6 +334,7 @@ Los errores de validación devuelven `422` con un `detail` legible, por ejemplo 
 | Documento | Para qué |
 |---|---|
 | `README.md` | Arranque rápido |
+| `INSTALACION.md` | Instalación paso a paso (Git, Docker, primer arranque) |
 | `docs/GUIA_DE_USO.md` | Esta guía |
 | `docs/PRUEBAS_MANUALES.md` | Casos de prueba de fase 1 y fase 2 con resultados esperados |
 | `docs/INVESTIGACION_CUSTOMER_CARE.md` | Qué encontramos sobre los reportes de Customer Care |

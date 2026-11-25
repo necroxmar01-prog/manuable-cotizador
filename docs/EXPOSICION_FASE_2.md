@@ -6,7 +6,7 @@ Documento de apoyo para la entrevista de revisión: qué se hizo, por qué, cóm
 
 ## 1. Resumen en 30 segundos
 
-> El cotizador ya estaba en producción. Había que cambiar tarifas y reglas de cobro sin romper lo que ya se había cotizado. Separé **datos** de **código**: tarifas y reglas de peso viven en la base de datos, versionadas por fecha, y se cargan desde archivos. Cada cotización guarda una **foto inmutable** del precio que vio la persona, válida 30 días. Al investigar a Customer Care encontré dos bugs reales (CP con espacios y paqueterías duplicadas en pesos exactos) y tres precios mal capturados que se estaban cotizando en producción, uno de ellos en $217,672.
+> El cotizador ya estaba en producción. Había que cambiar tarifas y reglas de cobro sin romper lo que ya se había cotizado. Separé **datos** de **código**: tarifas y reglas de peso viven en la base de datos, versionadas por fecha, y se cargan desde archivos. Cada cotización guarda una **foto inmutable** del precio que vio la persona, válida 30 días. Al investigar a Customer Care encontré tres bugs reales (la pantalla se quedaba en "Consultando...", el CP con espacios fallaba y las paqueterías salían duplicadas en pesos exactos) y tres precios mal capturados que se estaban cotizando en producción, uno de ellos en $217,672.
 
 ## 2. Qué pidió cada área y qué se entregó
 
@@ -17,7 +17,7 @@ Documento de apoyo para la entrevista de revisión: qué se hizo, por qué, cóm
 | Comercial | Respetar cotizaciones 30 días | Foto del precio + `valid_until`; folio visible; vista interna dice si sigue garantizado |
 | Comercial | Registrar 40 cotizaciones telefónicas | Importadas como `source='telefono'`, idempotentes por `cotizacion_id` |
 | Todos | Que el próximo cambio no requiera código | Sincronización de `datos/` por hash al arrancar |
-| Customer Care | CP con espacios, ciudad, "vecino ve otra" | Investigado: 2 bugs corregidos, 1 comportamiento normal explicado ([informe](INVESTIGACION_CUSTOMER_CARE.md)) |
+| Customer Care | CP con espacios, ciudad, "vecino ve otra" | Investigado: 3 bugs corregidos y 1 comportamiento normal explicado ([informe](INVESTIGACION_CUSTOMER_CARE.md)) |
 | Growth | Cotizaciones por día y sin opciones | `GET /api/metrics/quotes` + tarjetas y tabla en la vista interna |
 | Equipo | Fase 1 intacta | Migración con backfill, sin tocar precios guardados; probada desde `v1` |
 
@@ -136,14 +136,15 @@ Una sola migración (`b7d1c0a2e901`), con `downgrade` probado: upgrade → downg
 ## 7. Hallazgos de la investigación
 
 1. **"06600 " no da resultado: bug.** `maxlength="5"` cortaba " 06600" a " 0660" antes de limpiar, y el 422 de v1 era una lista técnica que el frontend no sabía mostrar.
-2. **"Se traba con la ciudad": UX.** El campo borraba letras en silencio. Ahora avisa qué escribir.
-3. **"Mi vecino ve otra paquetería": normal.** Depende de origen, peso y medidas, y hay huecos de tarifas (75 de 108 filas rechazadas en fase 1). Además existía el bug del límite de rango (5.3).
-4. **Datos:** 3 precios con el punto decimal corrido que se cotizaban en producción (5.7).
+2. **"Se traba": bug, que venía de v1.** El frontend es Angular 21 sin `zone.js` (zoneless). La respuesta HTTP llegaba (201) pero la pantalla no se refrescaba y se quedaba en "Consultando...". Se corrigió con `markForCheck()` tras cada respuesta, en el cotizador y en la vista interna.
+3. **"Se traba con la ciudad": UX.** El campo borraba letras en silencio. Ahora avisa qué escribir.
+4. **"Mi vecino ve otra paquetería": normal.** Depende de origen, peso y medidas, y hay huecos de tarifas (75 de 108 filas rechazadas en fase 1). Además existía el bug del límite de rango (5.3).
+5. **Datos:** 3 precios con el punto decimal corrido que se cotizaban en producción (5.7).
 
 ## 8. Calidad
 
-- **Backend: 111 pruebas** (eran 78), con SQLite en memoria y sin red. Incluyen una carga completa de los CSV reales.
-- **Frontend: 29 pruebas** (eran 22): CP pegado, aviso de ciudad, medidas, folio y vigencia.
+- **Backend: 111 pruebas** (69 en `v1`), con SQLite en memoria y sin red. Incluyen una carga completa de los CSV reales.
+- **Frontend: 30 pruebas** (eran 22): CP pegado, aviso de ciudad, medidas, folio, vigencia, refresco sin `zone.js` y la leyenda de volumétrico.
 - Migración probada contra PostgreSQL 16 partiendo del esquema de `v1`, con una cotización de fase 1 cuyo precio no cambió.
 
 ## 9. Qué no hice y qué recomiendo
@@ -181,6 +182,9 @@ Growth pregunta por uso del cotizador; esas no pasaron por él. Está en `PREGUN
 
 **¿Cómo pruebas el 1 de diciembre hoy?**
 Con `FECHA_SIMULADA` (solo demo; `/health` la muestra si está activa). En las pruebas automatizadas se congela el reloj.
+
+**¿Por qué la pantalla se quedaba en "Consultando..."?**
+Angular 21 genera proyectos sin `zone.js`. Sin zone.js, Angular no se entera de que llegó una respuesta HTTP si el estado vive en propiedades normales. Se resolvió llamando a `markForCheck()` al terminar cada petición. La alternativa más idiomática es mover el estado a *signals*. La prueba que lo cubre no fuerza el refresco a mano: falla sin la corrección.
 
 **¿Qué riesgo ves?**
 Que el supuesto "archivo = tarifario completo" no se cumpla: si Comercial manda un archivo parcial, esa paquetería perdería rangos. Por eso está como pregunta abierta y el reporte de carga muestra exactamente qué entró.
